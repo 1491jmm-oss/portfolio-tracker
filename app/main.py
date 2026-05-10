@@ -10,7 +10,7 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Portfolio Tracker API",
     description="API local para seguimiento simple de activos, movimientos, posiciones y valuacion.",
-    version="0.4.0",
+    version="0.5.0",
 )
 
 app.add_middleware(

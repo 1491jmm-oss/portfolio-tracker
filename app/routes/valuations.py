@@ -9,7 +9,6 @@ from app.models import (
     Asset,
     AssetType,
     Currency,
-    FxForUsd,
     FxRate,
     FxRateType,
     Movement,
@@ -68,19 +67,19 @@ def current_position_value(
 
 
 def fx_type_for_equity(asset: Asset, asset_type: AssetType) -> FxRateType:
-    if asset_type == AssetType.CEDEAR:
+    if asset_type in {AssetType.ACCION, AssetType.CEDEAR}:
         return FxRateType.CCL
-
-    fx_for_usd = FxForUsd(asset.fx_para_usd)
-    if fx_for_usd == FxForUsd.CCL:
-        return FxRateType.CCL
-    if fx_for_usd == FxForUsd.MEP:
-        return FxRateType.MEP
 
     raise HTTPException(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        detail=f"El activo {asset.ticker} requiere fx_para_usd CCL o MEP para valuar",
+        detail=f"El activo {asset.ticker} no es compatible con valuacion equity",
     )
+
+
+def dual_currency_fx_type(asset_type: AssetType) -> FxRateType:
+    if asset_type in {AssetType.ACCION, AssetType.CEDEAR}:
+        return FxRateType.CCL
+    return FxRateType.MEP
 
 
 def value_with_fx(
@@ -192,9 +191,10 @@ def cashflows_for_valuation(
     target_currency: Currency,
     valuation_date: date,
     fx_type: FxRateType,
-) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     item_total = 0.0
     total_ars = 0.0
+    total_usd = 0.0
 
     for cashflow in cashflows:
         item_total += convert_currency(
@@ -215,8 +215,17 @@ def cashflows_for_valuation(
             fx_type,
             valuation_date,
         )
+        total_usd += convert_currency(
+            db,
+            asset,
+            cashflow.amount,
+            cashflow.currency,
+            Currency.USD,
+            fx_type,
+            valuation_date,
+        )
 
-    return item_total, total_ars
+    return item_total, total_ars, total_usd
 
 
 def pnl_for_valuation(
@@ -273,13 +282,17 @@ def get_valuations(
     items: list[ValuationItem] = []
     total_ars = 0.0
     total_usd = 0.0
-    total_costo = 0.0
-    total_pnl = 0.0
+    total_costo_ars = 0.0
+    total_costo_usd = 0.0
+    total_pnl_ars = 0.0
+    total_pnl_usd = 0.0
     total_cashflows_cobrados = 0.0
-    total_return = 0.0
+    total_return_ars = 0.0
+    total_return_usd = 0.0
 
     for asset in assets:
         asset_type = AssetType(asset.tipo)
+        dual_fx_type = dual_currency_fx_type(asset_type)
         asset_movements = movements_by_ticker.get(asset.ticker, [])
         unit, position_value = current_position_value(asset, movements_by_ticker)
         if position_value == 0:
@@ -317,8 +330,8 @@ def get_valuations(
             pnl_pct,
             pnl_currency,
             item_cost_total,
-            cost_total_ars,
-            pnl_ars_for_total,
+            _legacy_cost_total_ars,
+            _legacy_pnl_ars,
         ) = pnl_for_valuation(
             db,
             asset,
@@ -329,24 +342,69 @@ def get_valuations(
             fecha,
             fx_used,
         )
-        total_costo += cost_total_ars
-        total_pnl += pnl_ars_for_total
+        costo_total_ars = convert_currency(
+            db,
+            asset,
+            item_cost_total,
+            pnl_currency,
+            Currency.ARS,
+            dual_fx_type,
+            fecha,
+        )
+        costo_total_usd = convert_currency(
+            db,
+            asset,
+            item_cost_total,
+            pnl_currency,
+            Currency.USD,
+            dual_fx_type,
+            fecha,
+        )
+        pnl_ars = convert_currency(
+            db,
+            asset,
+            pnl,
+            pnl_currency,
+            Currency.ARS,
+            dual_fx_type,
+            fecha,
+        )
+        pnl_usd = convert_currency(
+            db,
+            asset,
+            pnl,
+            pnl_currency,
+            Currency.USD,
+            dual_fx_type,
+            fecha,
+        )
+        total_costo_ars += costo_total_ars
+        total_costo_usd += costo_total_usd
+        total_pnl_ars += pnl_ars
+        total_pnl_usd += pnl_usd
         cashflows = collect_income_cashflows(asset, asset_movements)
-        cashflows_cobrados, cashflows_cobrados_ars = cashflows_for_valuation(
+        (
+            cashflows_cobrados,
+            cashflows_cobrados_ars,
+            cashflows_cobrados_usd,
+        ) = cashflows_for_valuation(
             db,
             asset,
             cashflows,
             pnl_currency,
             fecha,
-            fx_used,
+            dual_fx_type,
         )
         item_total_return = pnl + cashflows_cobrados
+        total_return_item_ars = pnl_ars + cashflows_cobrados_ars
+        total_return_item_usd = pnl_usd + cashflows_cobrados_usd
         item_total_return_pct = (
             None if item_cost_total == 0 else item_total_return / item_cost_total
         )
         item_ppc = item_cost_total / position_value if position_value != 0 else 0.0
         total_cashflows_cobrados += cashflows_cobrados_ars
-        total_return += pnl_ars_for_total + cashflows_cobrados_ars
+        total_return_ars += total_return_item_ars
+        total_return_usd += total_return_item_usd
         items.append(
             ValuationItem(
                 fecha=fecha,
@@ -361,26 +419,38 @@ def get_valuations(
                 fx_usado=fx_used,
                 ppc=item_ppc,
                 costo_total=item_cost_total,
+                costo_total_ars=costo_total_ars,
+                costo_total_usd=costo_total_usd,
                 pnl=pnl,
+                pnl_ars=pnl_ars,
+                pnl_usd=pnl_usd,
                 pnl_pct=pnl_pct,
                 moneda_pnl=pnl_currency,
                 cashflows_cobrados=cashflows_cobrados,
                 total_return=item_total_return,
+                total_return_ars=total_return_item_ars,
+                total_return_usd=total_return_item_usd,
                 total_return_pct=item_total_return_pct,
             )
         )
 
-    total_pnl_pct = None if total_costo == 0 else total_pnl / total_costo
-    total_return_pct = None if total_costo == 0 else total_return / total_costo
+    total_pnl_pct = None if total_costo_ars == 0 else total_pnl_ars / total_costo_ars
+    total_return_pct = None if total_costo_ars == 0 else total_return_ars / total_costo_ars
     return ValuationResponse(
         fecha=fecha,
         valuations=items,
         total_ars=total_ars,
         total_usd=total_usd,
-        total_costo=total_costo,
-        total_pnl=total_pnl,
+        total_costo=total_costo_ars,
+        total_costo_ars=total_costo_ars,
+        total_costo_usd=total_costo_usd,
+        total_pnl=total_pnl_ars,
+        total_pnl_ars=total_pnl_ars,
+        total_pnl_usd=total_pnl_usd,
         total_pnl_pct=total_pnl_pct,
         total_cashflows_cobrados=total_cashflows_cobrados,
-        total_return=total_return,
+        total_return=total_return_ars,
+        total_return_ars=total_return_ars,
+        total_return_usd=total_return_usd,
         total_return_pct=total_return_pct,
     )

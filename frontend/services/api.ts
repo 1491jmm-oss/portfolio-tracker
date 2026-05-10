@@ -24,11 +24,17 @@ export interface ValuationItem {
   fx_usado: "MEP" | "CCL" | "OFICIAL" | null;
   ppc: number;
   costo_total: number;
+  costo_total_ars: number;
+  costo_total_usd: number;
   pnl: number;
+  pnl_ars: number;
+  pnl_usd: number;
   pnl_pct: number | null;
   moneda_pnl: Currency;
   cashflows_cobrados: number;
   total_return: number;
+  total_return_ars: number;
+  total_return_usd: number;
   total_return_pct: number | null;
 }
 
@@ -38,10 +44,16 @@ export interface ValuationResponse {
   total_ars: number;
   total_usd: number;
   total_costo: number;
+  total_costo_ars: number;
+  total_costo_usd: number;
   total_pnl: number;
+  total_pnl_ars: number;
+  total_pnl_usd: number;
   total_pnl_pct: number | null;
   total_cashflows_cobrados: number;
   total_return: number;
+  total_return_ars: number;
+  total_return_usd: number;
   total_return_pct: number | null;
 }
 

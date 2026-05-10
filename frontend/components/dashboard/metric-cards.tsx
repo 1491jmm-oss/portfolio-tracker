@@ -1,4 +1,4 @@
-import { Activity, DollarSign, LineChart, TrendingUp } from "lucide-react";
+import { Activity, DollarSign, LineChart, TrendingUp, WalletCards } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoney, formatPercent } from "@/lib/format";
@@ -21,14 +21,24 @@ const metrics = [
     icon: Activity,
   },
   {
-    key: "pnl",
-    label: "Total P&L",
+    key: "pnlArs",
+    label: "P&L ARS",
     icon: LineChart,
   },
   {
-    key: "return",
-    label: "Total Return",
+    key: "pnlUsd",
+    label: "P&L USD",
+    icon: LineChart,
+  },
+  {
+    key: "returnArs",
+    label: "TR ARS",
     icon: TrendingUp,
+  },
+  {
+    key: "returnUsd",
+    label: "TR USD",
+    icon: WalletCards,
   },
 ] as const;
 
@@ -44,20 +54,30 @@ export function MetricCards({ valuation }: MetricCardsProps) {
       detail: formatMoney(valuation.total_ars, "ARS"),
       tone: "neutral",
     },
-    pnl: {
-      value: formatMoney(valuation.total_pnl, "ARS"),
+    pnlArs: {
+      value: formatMoney(valuation.total_pnl_ars ?? valuation.total_pnl, "ARS"),
       detail: formatPercent(valuation.total_pnl_pct),
-      tone: valuation.total_pnl >= 0 ? "positive" : "negative",
+      tone: (valuation.total_pnl_ars ?? valuation.total_pnl) >= 0 ? "positive" : "negative",
     },
-    return: {
-      value: formatMoney(valuation.total_return, "ARS"),
+    pnlUsd: {
+      value: formatMoney(valuation.total_pnl_usd ?? 0, "USD"),
+      detail: formatPercent(valuation.total_pnl_pct),
+      tone: (valuation.total_pnl_usd ?? 0) >= 0 ? "positive" : "negative",
+    },
+    returnArs: {
+      value: formatMoney(valuation.total_return_ars ?? valuation.total_return, "ARS"),
       detail: formatPercent(valuation.total_return_pct),
-      tone: valuation.total_return >= 0 ? "positive" : "negative",
+      tone: (valuation.total_return_ars ?? valuation.total_return) >= 0 ? "positive" : "negative",
+    },
+    returnUsd: {
+      value: formatMoney(valuation.total_return_usd ?? 0, "USD"),
+      detail: formatPercent(valuation.total_return_pct),
+      tone: (valuation.total_return_usd ?? 0) >= 0 ? "positive" : "negative",
     },
   };
 
   return (
-    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
       {metrics.map((metric) => {
         const current = values[metric.key];
         const Icon = metric.icon;

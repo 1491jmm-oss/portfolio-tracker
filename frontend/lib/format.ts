@@ -1,18 +1,19 @@
 export function formatMoney(value: number, currency: "ARS" | "USD" = "ARS") {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency,
+  const formatted = new Intl.NumberFormat("es-AR", {
+    minimumFractionDigits: currency === "ARS" ? 0 : 2,
     maximumFractionDigits: currency === "ARS" ? 0 : 2,
   }).format(value);
+
+  return currency === "USD" ? `U$S ${formatted}` : `$ ${formatted}`;
 }
 
 export function formatCompactMoney(value: number, currency: "ARS" | "USD" = "ARS") {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency,
+  const formatted = new Intl.NumberFormat("es-AR", {
     notation: "compact",
     maximumFractionDigits: 2,
   }).format(value);
+
+  return currency === "USD" ? `U$S ${formatted}` : `$ ${formatted}`;
 }
 
 export function formatNumber(value: number, maximumFractionDigits = 2) {

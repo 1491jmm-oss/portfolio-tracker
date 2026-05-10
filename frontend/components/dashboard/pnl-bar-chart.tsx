@@ -23,9 +23,8 @@ export function PnlBarChart({ items }: PnlBarChartProps) {
   const data = items
     .map((item) => ({
       ticker: item.ticker,
-      pnl: item.moneda_pnl === "USD" ? item.pnl * (item.valor_ars / Math.max(item.valor_usd, 1)) : item.pnl,
-      raw: item.pnl,
-      moneda: item.moneda_pnl,
+      pnl: item.pnl_ars ?? item.pnl,
+      pnlUsd: item.pnl_usd ?? 0,
     }))
     .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
     .slice(0, 10);
@@ -54,9 +53,9 @@ export function PnlBarChart({ items }: PnlBarChartProps) {
             <Tooltip
               formatter={(value, _name, payload) => [
                 formatMoney(Number(value), "ARS"),
-                `${payload.payload.raw >= 0 ? "Ganancia" : "Pérdida"} (${formatMoney(
-                  payload.payload.raw,
-                  payload.payload.moneda,
+                `${payload.payload.pnl >= 0 ? "Ganancia" : "Pérdida"} (${formatMoney(
+                  payload.payload.pnlUsd,
+                  "USD",
                 )})`,
               ]}
               contentStyle={{

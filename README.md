@@ -132,6 +132,10 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 - Si un ingreso no trae `cash_flow`, la API intenta calcularlo con `precio` y cantidad/nominal.
 - `total_return` es `pnl + cashflows_cobrados`.
 - `total_return_pct` es `total_return / costo_total`.
+- `/valuations` devuelve metricas dual-currency para cada posicion.
+- Acciones y CEDEAR convierten a USD con CCL.
+- Bonos, ON, letras y liquidez convierten a USD con MEP.
+- Los campos historicos `costo_total`, `pnl` y `total_return` se mantienen temporalmente por compatibilidad.
 
 ## Ejemplos
 
@@ -229,21 +233,33 @@ Respuesta esperada:
       "fx_usado": "MEP",
       "ppc": 55.5,
       "costo_total": 555,
+      "costo_total_ars": 610500,
+      "costo_total_usd": 555,
       "pnl": 0,
+      "pnl_ars": 0,
+      "pnl_usd": 0,
       "pnl_pct": 0,
       "moneda_pnl": "USD",
       "cashflows_cobrados": 0,
       "total_return": 0,
+      "total_return_ars": 0,
+      "total_return_usd": 0,
       "total_return_pct": 0
     }
   ],
   "total_ars": 610500,
   "total_usd": 555,
   "total_costo": 610500,
+  "total_costo_ars": 610500,
+  "total_costo_usd": 555,
   "total_pnl": 0,
+  "total_pnl_ars": 0,
+  "total_pnl_usd": 0,
   "total_pnl_pct": 0,
   "total_cashflows_cobrados": 0,
   "total_return": 0,
+  "total_return_ars": 0,
+  "total_return_usd": 0,
   "total_return_pct": 0
 }
 ```

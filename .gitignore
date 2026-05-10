@@ -10,3 +10,4 @@ frontend/out/
 
 .vscode/
 .DS_Store
+frontend/tsconfig.tsbuildinfo

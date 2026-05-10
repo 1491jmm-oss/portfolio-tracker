@@ -159,11 +159,17 @@ class ValuationItem(BaseModel):
     fx_usado: FxRateType | None
     ppc: float
     costo_total: float
+    costo_total_ars: float
+    costo_total_usd: float
     pnl: float
+    pnl_ars: float
+    pnl_usd: float
     pnl_pct: float | None
     moneda_pnl: Currency
     cashflows_cobrados: float
     total_return: float
+    total_return_ars: float
+    total_return_usd: float
     total_return_pct: float | None
 
 
@@ -173,8 +179,14 @@ class ValuationResponse(BaseModel):
     total_ars: float
     total_usd: float
     total_costo: float
+    total_costo_ars: float
+    total_costo_usd: float
     total_pnl: float
+    total_pnl_ars: float
+    total_pnl_usd: float
     total_pnl_pct: float | None
     total_cashflows_cobrados: float
     total_return: float
+    total_return_ars: float
+    total_return_usd: float
     total_return_pct: float | None
