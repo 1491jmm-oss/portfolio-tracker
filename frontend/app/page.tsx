@@ -6,16 +6,23 @@ import { AllocationChart } from "@/components/dashboard/allocation-chart";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { MetricCards } from "@/components/dashboard/metric-cards";
 import { PnlBarChart } from "@/components/dashboard/pnl-bar-chart";
+import { PortfolioHistoryChart } from "@/components/dashboard/portfolio-history-chart";
 import { PortfolioTable } from "@/components/dashboard/portfolio-table";
 import { DashboardSkeleton } from "@/components/dashboard/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSnapshots } from "@/hooks/use-snapshots";
 import { useValuations } from "@/hooks/use-valuations";
 
 const valuationDate = "2026-05-02";
 
 export default function Home() {
   const { data, error, isLoading, refetch } = useValuations(valuationDate);
+  const {
+    data: snapshots,
+    error: snapshotsError,
+    isLoading: snapshotsLoading,
+  } = useSnapshots();
 
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
@@ -45,6 +52,12 @@ export default function Home() {
         {!isLoading && data ? (
           <>
             <MetricCards valuation={data} />
+
+            <PortfolioHistoryChart
+              snapshots={snapshots}
+              isLoading={snapshotsLoading}
+              error={snapshotsError}
+            />
 
             <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
               <AllocationChart items={data.valuations} />

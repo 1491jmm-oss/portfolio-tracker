@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -190,3 +190,19 @@ class ValuationResponse(BaseModel):
     total_return_ars: float
     total_return_usd: float
     total_return_pct: float | None
+
+
+class PortfolioSnapshotRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    fecha: date
+    total_ars: float
+    total_usd: float
+    total_costo_ars: float
+    total_costo_usd: float
+    total_pnl_ars: float
+    total_pnl_usd: float
+    total_return_ars: float
+    total_return_usd: float
+    created_at: datetime

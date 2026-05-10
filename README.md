@@ -12,6 +12,7 @@ Esta primera etapa incluye:
 - Consultar valuacion de cartera calculada en runtime
 - Consultar PPC, costo y P&L por posicion
 - Consultar cash flows cobrados y total return por posicion
+- Guardar snapshots diarios consolidados para historicos de performance
 - Documentacion automatica con Swagger
 
 No incluye frontend, TIR ni benchmark.
@@ -92,6 +93,11 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 
 - `GET /valuations?fecha=YYYY-MM-DD`
 
+### Snapshots
+
+- `GET /snapshots`
+- `POST /snapshots/create?fecha=YYYY-MM-DD`
+
 ## Reglas de posicion
 
 - La posicion no se guarda en base de datos: se calcula desde movimientos.
@@ -136,6 +142,16 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 - Acciones y CEDEAR convierten a USD con CCL.
 - Bonos, ON, letras y liquidez convierten a USD con MEP.
 - Los campos historicos `costo_total`, `pnl` y `total_return` se mantienen temporalmente por compatibilidad.
+
+## Snapshots diarios
+
+- Los snapshots se guardan en la tabla `portfolio_snapshots`.
+- Cada snapshot guarda solo totales consolidados de cartera, sin detalle por ticker.
+- La API inicia automaticamente un scheduler con APScheduler al arrancar FastAPI.
+- El job se ejecuta una vez por dia a las 23:55, timezone `America/Buenos_Aires`.
+- Si ya existe un snapshot para una fecha, no se duplica.
+- Se puede crear manualmente un snapshot para testing con `POST /snapshots/create?fecha=YYYY-MM-DD`.
+- Los logs informan cuando el scheduler inicia, cuando un snapshot se crea y cuando ya existe.
 
 ## Ejemplos
 
@@ -300,4 +316,16 @@ curl -X POST http://127.0.0.1:8000/movements \
     "cash_flow": 100,
     "observaciones": "Amortizacion de capital"
   }'
+```
+
+Crear snapshot manual:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/snapshots/create?fecha=2026-05-01"
+```
+
+Consultar snapshots:
+
+```bash
+curl http://127.0.0.1:8000/snapshots
 ```

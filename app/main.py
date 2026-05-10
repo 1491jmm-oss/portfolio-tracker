@@ -1,16 +1,21 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routes import assets, fx_rates, movements, positions, prices, valuations
+from app.routes import assets, fx_rates, movements, positions, prices, snapshots, valuations
+from app.services.scheduler import start_scheduler, stop_scheduler
 
+
+logging.basicConfig(level=logging.INFO)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Portfolio Tracker API",
     description="API local para seguimiento simple de activos, movimientos, posiciones y valuacion.",
-    version="0.5.0",
+    version="0.6.0",
 )
 
 app.add_middleware(
@@ -30,6 +35,17 @@ app.include_router(positions.router)
 app.include_router(prices.router)
 app.include_router(fx_rates.router)
 app.include_router(valuations.router)
+app.include_router(snapshots.router)
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+def shutdown_event() -> None:
+    stop_scheduler()
 
 
 @app.get("/health", tags=["health"])

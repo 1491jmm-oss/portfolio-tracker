@@ -57,6 +57,20 @@ export interface ValuationResponse {
   total_return_pct: number | null;
 }
 
+export interface Snapshot {
+  id: number;
+  fecha: string;
+  total_ars: number;
+  total_usd: number;
+  total_costo_ars: number;
+  total_costo_usd: number;
+  total_pnl_ars: number;
+  total_pnl_usd: number;
+  total_return_ars: number;
+  total_return_usd: number;
+  created_at: string;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function request<T>(path: string): Promise<T> {
@@ -81,4 +95,8 @@ async function request<T>(path: string): Promise<T> {
 
 export function getValuations(date: string) {
   return request<ValuationResponse>(`/valuations?fecha=${date}`);
+}
+
+export function getSnapshots() {
+  return request<Snapshot[]>("/snapshots");
 }

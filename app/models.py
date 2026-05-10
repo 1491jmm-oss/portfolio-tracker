@@ -1,7 +1,7 @@
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, Date, Float, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -107,3 +107,23 @@ class FxRate(Base):
     fecha: Mapped[date] = mapped_column(Date, index=True, nullable=False)
     tipo: Mapped[str] = mapped_column(String(8), index=True, nullable=False)
     valor: Mapped[float] = mapped_column(Float, nullable=False)
+
+
+class PortfolioSnapshot(Base):
+    __tablename__ = "portfolio_snapshots"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    fecha: Mapped[date] = mapped_column(Date, unique=True, index=True, nullable=False)
+    total_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    total_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    total_costo_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    total_costo_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    total_pnl_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    total_pnl_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    total_return_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    total_return_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
