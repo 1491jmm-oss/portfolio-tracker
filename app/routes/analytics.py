@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Currency, PortfolioSnapshot
-from app.schemas import DrawdownResponse, DrawdownSummaryRead
+from app.schemas import (
+    DrawdownPointRead,
+    DrawdownResponse,
+    DrawdownSummaryRead,
+)
 from app.services.drawdowns import DrawdownSeriesPoint, calculate_drawdowns
 
 
@@ -24,26 +28,39 @@ def get_drawdowns(
 
     if fecha_desde is not None:
         statement = statement.where(PortfolioSnapshot.fecha >= fecha_desde)
+
     if fecha_hasta is not None:
         statement = statement.where(PortfolioSnapshot.fecha <= fecha_hasta)
 
-    snapshots = list(db.scalars(statement.order_by(PortfolioSnapshot.fecha.asc())).all())
+    snapshots = list(
+        db.scalars(
+            statement.order_by(PortfolioSnapshot.fecha.asc())
+        ).all()
+    )
+
     values = [
         DrawdownSeriesPoint(
             fecha=snapshot.fecha,
-            valor=snapshot.total_ars if moneda == Currency.ARS else snapshot.total_usd,
+            valor=(
+                snapshot.total_ars
+                if moneda == Currency.ARS
+                else snapshot.total_usd
+            ),
         )
         for snapshot in snapshots
     ]
+
     result = calculate_drawdowns(values)
+
+    series = [
+        DrawdownPointRead.model_validate(point)
+        for point in result.series
+    ]
+
+    summary = DrawdownSummaryRead.model_validate(result.summary)
 
     return DrawdownResponse(
         moneda=moneda,
-        series=result.series,
-        summary=DrawdownSummaryRead(
-            max_drawdown_pct=result.summary.max_drawdown_pct,
-            max_drawdown_abs=result.summary.max_drawdown_abs,
-            fecha_peak=result.summary.fecha_peak,
-            fecha_trough=result.summary.fecha_trough,
-        ),
+        series=series,
+        summary=summary,
     )
