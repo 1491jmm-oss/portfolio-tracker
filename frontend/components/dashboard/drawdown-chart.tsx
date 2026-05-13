@@ -13,6 +13,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrency } from "@/components/currency-provider";
 import { filterByRange, type TimeRange } from "@/lib/chart-controls";
 import { formatMoney, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -22,7 +23,6 @@ interface DrawdownChartProps {
   drawdowns: DrawdownResponse | null;
   isLoading: boolean;
   error: string | null;
-  currency: Currency;
   timeRange: TimeRange;
 }
 
@@ -78,16 +78,16 @@ function DrawdownTooltip({
   const datum = payload[0].payload;
 
   return (
-    <div className="min-w-56 rounded-md border border-border bg-[#101722] p-3 text-sm shadow-xl">
+    <div className="min-w-56 rounded-md border border-border bg-card p-3 text-sm shadow-xl">
       <div className="mb-2 font-medium text-foreground">Fecha: {label}</div>
       <div className="space-y-1.5 text-muted-foreground">
         <div className="flex justify-between gap-6">
           <span>Drawdown</span>
-          <span className="font-mono text-red-300">{formatPercent(datum.drawdown_pct)}</span>
+          <span className="font-mono text-negative">{formatPercent(datum.drawdown_pct)}</span>
         </div>
         <div className="flex justify-between gap-6">
           <span>Drawdown abs</span>
-          <span className="font-mono text-red-300">{formatMoney(datum.drawdown_abs, currency)}</span>
+          <span className="font-mono text-negative">{formatMoney(datum.drawdown_abs, currency)}</span>
         </div>
         <div className="flex justify-between gap-6">
           <span>Peak value</span>
@@ -104,15 +104,15 @@ export function DrawdownChart({
   drawdowns,
   isLoading,
   error,
-  currency,
   timeRange,
 }: DrawdownChartProps) {
+  const { currency } = useCurrency();
   const series = drawdowns ? filterByRange(drawdowns.series, timeRange) : [];
   const summary = summaryForRange(series);
   const hasEnoughData = series.length >= 2;
 
   return (
-    <Card className="border-white/10 bg-card/85 backdrop-blur">
+    <Card className="bg-card/85 backdrop-blur">
       <CardHeader className="gap-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -127,7 +127,7 @@ export function DrawdownChart({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border bg-muted/35 p-3">
               <p className="text-xs uppercase text-muted-foreground">Max Drawdown %</p>
-              <p className="mt-2 font-mono text-2xl font-semibold text-red-300">
+              <p className="mt-2 font-mono text-2xl font-semibold text-negative">
                 {formatPercent(summary.max_drawdown_pct)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -136,7 +136,7 @@ export function DrawdownChart({
             </div>
             <div className="rounded-lg border bg-muted/35 p-3">
               <p className="text-xs uppercase text-muted-foreground">Max Drawdown {currency}</p>
-              <p className="mt-2 font-mono text-2xl font-semibold text-red-300">
+              <p className="mt-2 font-mono text-2xl font-semibold text-negative">
                 {formatMoney(summary.max_drawdown_abs, currency)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">Basado en snapshots históricos</p>

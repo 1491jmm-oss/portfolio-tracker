@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, BarChart3, RefreshCcw } from "lucide-react";
+import type { ReactNode } from "react";
+import { AlertCircle, BarChart3, ChevronDown, LineChart, RefreshCcw } from "lucide-react";
 
 import { AllocationChart } from "@/components/dashboard/allocation-chart";
 import { AllocationHistoryChart } from "@/components/dashboard/allocation-history-chart";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DrawdownChart } from "@/components/dashboard/drawdown-chart";
 import { MetricCards } from "@/components/dashboard/metric-cards";
 import { PnlBarChart } from "@/components/dashboard/pnl-bar-chart";
@@ -15,7 +17,8 @@ import { DashboardSkeleton } from "@/components/dashboard/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { ChartMode, ScaleMode, TimeRange } from "@/lib/chart-controls";
-import type { Currency } from "@/services/api";
+import { cn } from "@/lib/utils";
+import { useCurrency } from "@/components/currency-provider";
 import { useDrawdowns } from "@/hooks/use-drawdowns";
 import { useSnapshotItems } from "@/hooks/use-snapshot-items";
 import { useSnapshots } from "@/hooks/use-snapshots";
@@ -23,11 +26,32 @@ import { useValuations } from "@/hooks/use-valuations";
 
 const valuationDate = "2026-05-02";
 
+function SectionHeader({
+  title,
+  description,
+  meta,
+}: {
+  title: string;
+  description?: string;
+  meta?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h2 className="text-lg font-semibold tracking-normal text-foreground">{title}</h2>
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+      </div>
+      {meta ? <div className="text-sm text-muted-foreground">{meta}</div> : null}
+    </div>
+  );
+}
+
 export default function Home() {
-  const [historyCurrency, setHistoryCurrency] = useState<Currency>("ARS");
+  const { currency } = useCurrency();
   const [historyTimeRange, setHistoryTimeRange] = useState<TimeRange>("ALL");
   const [historyScaleMode, setHistoryScaleMode] = useState<ScaleMode>("linear");
   const [historyChartMode, setHistoryChartMode] = useState<ChartMode>("absolute");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const { data, error, isLoading, refetch } = useValuations(valuationDate);
   const {
     data: snapshots,
@@ -43,22 +67,24 @@ export default function Home() {
     data: drawdowns,
     error: drawdownsError,
     isLoading: drawdownsLoading,
-  } = useDrawdowns(historyCurrency);
+  } = useDrawdowns(currency);
 
   return (
-    <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+    <>
+      <DashboardSidebar />
+      <main className="min-h-screen px-4 pb-8 pt-24 sm:px-6 md:pl-[17.5rem] md:pr-8 md:pt-8 lg:pr-10">
+      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-8">
         <DashboardHeader date={valuationDate} onRefresh={refetch} />
 
         {isLoading ? <DashboardSkeleton /> : null}
 
         {!isLoading && error ? (
-          <Card className="border-red-500/30 bg-red-500/10">
+          <Card className="border-red-500/25 bg-red-500/10">
             <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <AlertCircle className="mt-0.5 h-5 w-5 text-red-300" />
                 <div>
-                  <p className="font-medium text-red-100">No se pudo cargar la valuación</p>
+                  <p className="font-medium text-red-100">No se pudo cargar la valuacion</p>
                   <p className="mt-1 text-sm text-red-100/70">{error}</p>
                 </div>
               </div>
@@ -74,48 +100,97 @@ export default function Home() {
           <>
             <MetricCards valuation={data} />
 
-            <PortfolioHistoryChart
-              snapshots={snapshots}
-              isLoading={snapshotsLoading}
-              error={snapshotsError}
-              currency={historyCurrency}
-              onCurrencyChange={setHistoryCurrency}
-              timeRange={historyTimeRange}
-              onTimeRangeChange={setHistoryTimeRange}
-              scaleMode={historyScaleMode}
-              onScaleModeChange={setHistoryScaleMode}
-              chartMode={historyChartMode}
-              onChartModeChange={setHistoryChartMode}
-            />
-
-            <DrawdownChart
-              drawdowns={drawdowns}
-              isLoading={drawdownsLoading}
-              error={drawdownsError}
-              currency={historyCurrency}
-              timeRange={historyTimeRange}
-            />
-
-            <AllocationHistoryChart
-              items={snapshotItems}
-              isLoading={snapshotItemsLoading}
-              error={snapshotItemsError}
-            />
-
-            <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
-              <AllocationChart items={data.valuations} />
-              <PnlBarChart items={data.valuations} />
+            <section className="space-y-4">
+              <SectionHeader
+                title="Holdings"
+                description="Posiciones actuales, distribucion y contribucion al resultado."
+                meta={
+                  <span className="inline-flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    {data.valuations.length} posiciones valuadas
+                  </span>
+                }
+              />
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)]">
+                <div className="min-w-0">
+                  <PortfolioTable items={data.valuations} />
+                </div>
+                <aside className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
+                  <AllocationChart items={data.valuations} />
+                  <PnlBarChart items={data.valuations} />
+                </aside>
+              </div>
             </section>
 
-            <section className="flex items-center gap-2 text-sm text-muted-foreground">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <span>{data.valuations.length} posiciones valuadas</span>
+            <section className="space-y-4">
+              <SectionHeader
+                title="Portfolio Evolution"
+                description="El grafico principal de patrimonio historico contra costo invertido."
+              />
+              <PortfolioHistoryChart
+                snapshots={snapshots}
+                isLoading={snapshotsLoading}
+                error={snapshotsError}
+                timeRange={historyTimeRange}
+                onTimeRangeChange={setHistoryTimeRange}
+                scaleMode={historyScaleMode}
+                onScaleModeChange={setHistoryScaleMode}
+                chartMode={historyChartMode}
+                onChartModeChange={setHistoryChartMode}
+                title="Portfolio Evolution"
+                description={
+                  historyChartMode === "absolute"
+                    ? "Portfolio value contra cost basis"
+                    : "Portfolio base 100 contra benchmark dinamico"
+                }
+                heightClassName="h-[420px]"
+              />
             </section>
 
-            <PortfolioTable items={data.valuations} />
+            <section className="space-y-4">
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((current) => !current)}
+                className="flex w-full items-center justify-between rounded-lg border border-border bg-card/70 px-5 py-4 text-left shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition hover:border-primary/25 hover:bg-card dark:shadow-[0_14px_34px_rgba(0,0,0,0.18)]"
+              >
+                <span>
+                  <span className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                    <LineChart className="h-4 w-4 text-primary" />
+                    Advanced Analytics
+                  </span>
+                  <span className="mt-1 block text-sm text-muted-foreground">
+                    Drawdowns y allocation history.
+                  </span>
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "h-5 w-5 text-muted-foreground transition-transform",
+                    advancedOpen && "rotate-180",
+                  )}
+                />
+              </button>
+
+              {advancedOpen ? (
+                <div className="grid gap-5">
+                  <DrawdownChart
+                    drawdowns={drawdowns}
+                    isLoading={drawdownsLoading}
+                    error={drawdownsError}
+                    timeRange={historyTimeRange}
+                  />
+
+                  <AllocationHistoryChart
+                    items={snapshotItems}
+                    isLoading={snapshotItemsLoading}
+                    error={snapshotItemsError}
+                  />
+                </div>
+              ) : null}
+            </section>
           </>
         ) : null}
       </div>
-    </main>
+      </main>
+    </>
   );
 }

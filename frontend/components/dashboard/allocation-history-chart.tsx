@@ -13,6 +13,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrency } from "@/components/currency-provider";
 import { formatMoney, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { SnapshotItem } from "@/services/api";
@@ -82,6 +83,7 @@ function AllocationTooltip({
   active,
   payload,
   label,
+  currency,
 }: {
   active?: boolean;
   payload?: Array<{
@@ -91,6 +93,7 @@ function AllocationTooltip({
     payload: AllocationDatum;
   }>;
   label?: string;
+  currency: "ARS" | "USD";
 }) {
   if (!active || !payload?.length) {
     return null;
@@ -101,13 +104,14 @@ function AllocationTooltip({
     .sort((a, b) => Number(b.value) - Number(a.value));
 
   return (
-    <div className="max-h-80 min-w-72 overflow-auto rounded-md border border-border bg-[#101722] p-3 text-sm shadow-xl">
+    <div className="max-h-80 min-w-72 overflow-auto rounded-md border border-border bg-card p-3 text-sm shadow-xl">
       <div className="mb-2 font-medium text-foreground">Fecha: {label}</div>
       <div className="space-y-2">
         {rows.map((row) => {
           const ticker = String(row.dataKey);
           const valorArs = Number(row.payload[`${ticker}__valor_ars`] ?? 0);
           const valorUsd = Number(row.payload[`${ticker}__valor_usd`] ?? 0);
+          const value = currency === "ARS" ? valorArs : valorUsd;
 
           return (
             <div key={ticker} className="border-b border-border/70 pb-2 last:border-0 last:pb-0">
@@ -121,9 +125,8 @@ function AllocationTooltip({
                 </span>
                 <span className="font-mono text-primary">{formatPercent(Number(row.value))}</span>
               </div>
-              <div className="mt-1 flex justify-between gap-6 text-xs text-muted-foreground">
-                <span>{formatMoney(valorArs, "ARS")}</span>
-                <span>{formatMoney(valorUsd, "USD")}</span>
+              <div className="mt-1 flex justify-end text-xs text-muted-foreground">
+                <span>{formatMoney(value, currency)}</span>
               </div>
             </div>
           );
@@ -138,10 +141,11 @@ export function AllocationHistoryChart({
   isLoading,
   error,
 }: AllocationHistoryChartProps) {
+  const { currency } = useCurrency();
   const { data, tickers } = buildAllocationData(items);
 
   return (
-    <Card className="border-white/10 bg-card/85 backdrop-blur">
+    <Card className="bg-card/85 backdrop-blur">
       <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle>Allocation history</CardTitle>
@@ -187,7 +191,7 @@ export function AllocationHistoryChart({
                 tickFormatter={(value) => formatPercent(Number(value))}
                 width={56}
               />
-              <Tooltip content={<AllocationTooltip />} />
+              <Tooltip content={<AllocationTooltip currency={currency} />} />
               {tickers.map((ticker, index) => (
                 <Area
                   key={ticker}

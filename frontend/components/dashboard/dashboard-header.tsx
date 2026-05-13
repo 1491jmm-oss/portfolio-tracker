@@ -1,7 +1,8 @@
-import { RefreshCcw, Signal } from "lucide-react";
+import { RefreshCcw } from "lucide-react";
 
+import { CurrencyToggle } from "@/components/currency-toggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 interface DashboardHeaderProps {
   date: string;
@@ -10,27 +11,24 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ date, onRefresh }: DashboardHeaderProps) {
   return (
-    <header className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+    <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Badge className="border-primary/30 bg-primary/10 text-primary">
-            <Signal className="mr-1 h-3 w-3" />
-            Live API
-          </Badge>
-          <Badge>Valuación {date}</Badge>
-        </div>
         <h1 className="text-2xl font-semibold tracking-normal text-foreground sm:text-3xl">
           Portfolio Tracker
         </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Vista consolidada de posiciones, valuación, P&L y total return.
+        <p className="mt-2 text-sm text-muted-foreground">
+          Ultima actualizacion: <span className="font-mono text-foreground/80">{date}</span>
         </p>
       </div>
 
-      <Button variant="secondary" onClick={onRefresh}>
-        <RefreshCcw className="h-4 w-4" />
-        Actualizar
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <CurrencyToggle />
+        <ThemeToggle />
+        <Button variant="secondary" onClick={onRefresh} className="w-fit">
+          <RefreshCcw className="h-4 w-4" />
+          Refresh
+        </Button>
+      </div>
     </header>
   );
 }

@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { useCurrency } from "@/components/currency-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 import type { ValuationItem } from "@/services/api";
@@ -20,19 +21,21 @@ interface PnlBarChartProps {
 }
 
 export function PnlBarChart({ items }: PnlBarChartProps) {
+  const { currency } = useCurrency();
+  const secondaryCurrency = currency === "ARS" ? "USD" : "ARS";
   const data = items
     .map((item) => ({
       ticker: item.ticker,
-      pnl: item.pnl_ars ?? item.pnl,
-      pnlUsd: item.pnl_usd ?? 0,
+      pnl: currency === "ARS" ? (item.pnl_ars ?? item.pnl) : (item.pnl_usd ?? 0),
+      pnlSecondary: currency === "ARS" ? (item.pnl_usd ?? 0) : (item.pnl_ars ?? item.pnl),
     }))
     .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
     .slice(0, 10);
 
   return (
-    <Card className="border-white/10 bg-card/85 backdrop-blur">
+    <Card className="bg-card/85 backdrop-blur">
       <CardHeader>
-        <CardTitle>P&L por activo</CardTitle>
+        <CardTitle>P&L por activo ({currency})</CardTitle>
       </CardHeader>
       <CardContent className="h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -48,27 +51,30 @@ export function PnlBarChart({ items }: PnlBarChartProps) {
               tickLine={false}
               axisLine={false}
               tick={{ fill: "#94a3b8", fontSize: 12 }}
-              tickFormatter={(value) => formatCompactMoney(Number(value), "ARS")}
+              tickFormatter={(value) => formatCompactMoney(Number(value), currency)}
             />
             <Tooltip
               formatter={(value, _name, payload) => [
-                formatMoney(Number(value), "ARS"),
-                `${payload.payload.pnl >= 0 ? "Ganancia" : "Pérdida"} (${formatMoney(
-                  payload.payload.pnlUsd,
-                  "USD",
+                formatMoney(Number(value), currency),
+                `${payload.payload.pnl >= 0 ? "Ganancia" : "Perdida"} (${formatMoney(
+                  payload.payload.pnlSecondary,
+                  secondaryCurrency,
                 )})`,
               ]}
               contentStyle={{
-                background: "#101722",
-                border: "1px solid rgba(148,163,184,0.25)",
+                background: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
                 borderRadius: 8,
-                color: "#f8fafc",
+                color: "hsl(var(--foreground))",
               }}
               cursor={{ fill: "rgba(148,163,184,0.08)" }}
             />
             <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
               {data.map((entry) => (
-                <Cell key={entry.ticker} fill={entry.pnl >= 0 ? "#34d399" : "#f87171"} />
+                <Cell
+                  key={entry.ticker}
+                  fill={entry.pnl >= 0 ? "hsl(var(--positive))" : "hsl(var(--negative))"}
+                />
               ))}
             </Bar>
           </BarChart>

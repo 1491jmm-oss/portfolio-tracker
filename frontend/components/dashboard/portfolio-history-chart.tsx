@@ -3,9 +3,10 @@
 import { useMemo } from "react";
 import { AlertCircle, History } from "lucide-react";
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,10 +16,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ToggleGroup } from "@/components/ui/toggle-group";
+import { useCurrency } from "@/components/currency-provider";
 import { useBenchmarkPerformance } from "@/hooks/use-benchmark-performance";
 import {
   chartModes,
-  currencies,
   filterByRange,
   scaleModes,
   timeRanges,
@@ -34,20 +35,26 @@ interface PortfolioHistoryChartProps {
   snapshots: Snapshot[];
   isLoading: boolean;
   error: string | null;
-  currency: Currency;
-  onCurrencyChange: (currency: Currency) => void;
   timeRange: TimeRange;
   onTimeRangeChange: (timeRange: TimeRange) => void;
   scaleMode: ScaleMode;
   onScaleModeChange: (scaleMode: ScaleMode) => void;
   chartMode: ChartMode;
-  onChartModeChange: (chartMode: ChartMode) => void;
+  onChartModeChange?: (chartMode: ChartMode) => void;
+  title?: string;
+  description?: string;
+  showModeToggle?: boolean;
+  heightClassName?: string;
 }
 
 interface ChartDatum {
   fecha: string;
   portfolioValue?: number;
   costBasis?: number;
+  gainBase?: number;
+  gainSpread?: number;
+  lossBase?: number;
+  lossSpread?: number;
   portfolioNormalized?: number;
   benchmarkNormalized?: number;
 }
@@ -87,7 +94,7 @@ function AbsoluteTooltip({
   const differencePct = costBasis === 0 ? null : difference / costBasis;
 
   return (
-    <div className="min-w-56 rounded-md border border-border bg-[#101722] p-3 text-sm shadow-xl">
+    <div className="min-w-56 rounded-md border border-border bg-card p-3 text-sm shadow-xl">
       <div className="mb-2 font-medium text-foreground">Fecha: {label}</div>
       <div className="space-y-1.5 text-muted-foreground">
         <div className="flex justify-between gap-6">
@@ -100,13 +107,13 @@ function AbsoluteTooltip({
         </div>
         <div className="flex justify-between gap-6 border-t border-border pt-1.5">
           <span>Diferencia</span>
-          <span className={cn("font-mono", difference >= 0 ? "text-emerald-300" : "text-red-300")}>
+          <span className={cn("font-mono", difference >= 0 ? "text-positive" : "text-negative")}>
             {formatMoney(difference, currency)}
           </span>
         </div>
         <div className="flex justify-between gap-6">
           <span>Diferencia %</span>
-          <span className={cn("font-mono", difference >= 0 ? "text-emerald-300" : "text-red-300")}>
+          <span className={cn("font-mono", difference >= 0 ? "text-positive" : "text-negative")}>
             {formatPercent(differencePct)}
           </span>
         </div>
@@ -137,7 +144,7 @@ function RelativeTooltip({
     portfolio !== null && benchmarkValue !== null ? portfolio - benchmarkValue : null;
 
   return (
-    <div className="min-w-64 rounded-md border border-border bg-[#101722] p-3 text-sm shadow-xl">
+    <div className="min-w-64 rounded-md border border-border bg-card p-3 text-sm shadow-xl">
       <div className="mb-2 font-medium text-foreground">Fecha: {label}</div>
       <div className="space-y-1.5 text-muted-foreground">
         <div className="flex justify-between gap-6">
@@ -160,8 +167,8 @@ function RelativeTooltip({
               difference === null
                 ? "text-muted-foreground"
                 : difference >= 0
-                  ? "text-emerald-300"
-                  : "text-red-300",
+                  ? "text-positive"
+                  : "text-negative",
             )}
           >
             {difference === null ? "-" : `${formatNumber(difference, 2)} pts`}
@@ -176,15 +183,18 @@ export function PortfolioHistoryChart({
   snapshots,
   isLoading,
   error,
-  currency,
-  onCurrencyChange,
   timeRange,
   onTimeRangeChange,
   scaleMode,
   onScaleModeChange,
   chartMode,
   onChartModeChange,
+  title = "Evolucion historica",
+  description,
+  showModeToggle = true,
+  heightClassName = "h-[360px]",
 }: PortfolioHistoryChartProps) {
+  const { currency } = useCurrency();
   const benchmark = benchmarkForCurrency(currency);
   const {
     data: benchmarkPerformance,
@@ -207,7 +217,18 @@ export function PortfolioHistoryChart({
         fecha: snapshot.fecha,
         portfolioValue: currency === "ARS" ? snapshot.total_ars : snapshot.total_usd,
         costBasis: currency === "ARS" ? snapshot.total_costo_ars : snapshot.total_costo_usd,
-      }));
+      })).map((item) => {
+        const portfolioValue = item.portfolioValue ?? 0;
+        const costBasis = item.costBasis ?? 0;
+
+        return {
+          ...item,
+          gainBase: costBasis,
+          gainSpread: Math.max(portfolioValue - costBasis, 0),
+          lossBase: portfolioValue,
+          lossSpread: Math.max(costBasis - portfolioValue, 0),
+        };
+      });
     }
 
     const portfolioBaseSnapshot = filteredSnapshots.find((snapshot) => {
@@ -252,27 +273,29 @@ export function PortfolioHistoryChart({
   const isLogFallback = scaleMode === "log" && !canUseLogScale;
   const chartLoading = isLoading || (chartMode === "relative" && benchmarkLoading);
   const chartError = error ?? (chartMode === "relative" ? benchmarkError : null);
+  const subtitle =
+    description ??
+    (chartMode === "absolute"
+      ? "Portfolio value contra costo invertido"
+      : `Performance base 100 vs ${benchmark}`);
 
   return (
-    <Card className="border-white/10 bg-card/85 backdrop-blur">
+    <Card className="bg-card/85 backdrop-blur">
       <CardHeader className="gap-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <CardTitle>Evolución histórica</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {chartMode === "absolute"
-                ? "Portfolio value contra costo invertido"
-                : `Performance base 100 vs ${benchmark}`}
-            </p>
+            <CardTitle>{title}</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <ToggleGroup
-              items={chartModes}
-              value={chartMode}
-              onChange={onChartModeChange}
-              labels={{ absolute: "Absolute", relative: "Relative" }}
-            />
-            <ToggleGroup items={currencies} value={currency} onChange={onCurrencyChange} />
+            {showModeToggle ? (
+              <ToggleGroup
+                items={chartModes}
+                value={chartMode}
+                onChange={onChartModeChange ?? (() => undefined)}
+                labels={{ absolute: "Absolute", relative: "Benchmark" }}
+              />
+            ) : null}
             <ToggleGroup items={timeRanges} value={timeRange} onChange={onTimeRangeChange} />
             <ToggleGroup
               items={scaleModes}
@@ -289,7 +312,7 @@ export function PortfolioHistoryChart({
           </p>
         ) : null}
       </CardHeader>
-      <CardContent className="h-[360px]">
+      <CardContent className={heightClassName}>
         {chartLoading ? (
           <Skeleton className="h-full w-full" />
         ) : chartError ? (
@@ -308,7 +331,7 @@ export function PortfolioHistoryChart({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 8, right: 16, left: 4, bottom: 8 }}>
+            <ComposedChart data={data} margin={{ top: 8, right: 16, left: 4, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="fecha"
@@ -343,25 +366,63 @@ export function PortfolioHistoryChart({
               />
               {chartMode === "absolute" ? (
                 <>
+                  <Area
+                    type="monotone"
+                    dataKey="gainBase"
+                    stackId="gain"
+                    stroke="transparent"
+                    fill="transparent"
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="gainSpread"
+                    stackId="gain"
+                    stroke="transparent"
+                    fill="hsl(var(--positive))"
+                    fillOpacity={0.1}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="lossBase"
+                    stackId="loss"
+                    stroke="transparent"
+                    fill="transparent"
+                    isAnimationActive={false}
+                    connectNulls
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="lossSpread"
+                    stackId="loss"
+                    stroke="transparent"
+                    fill="hsl(var(--negative))"
+                    fillOpacity={0.1}
+                    isAnimationActive={false}
+                    connectNulls
+                  />
                   <Line
                     type="monotone"
                     dataKey="portfolioValue"
                     name="Portfolio Value"
-                    stroke="#22d3ee"
-                    strokeWidth={2.5}
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2.8}
                     dot={data.length <= 10}
-                    activeDot={{ r: 5 }}
+                    activeDot={{ r: 5, stroke: "hsl(var(--background))", strokeWidth: 2 }}
                     connectNulls
                   />
                   <Line
                     type="monotone"
                     dataKey="costBasis"
                     name="Cost Basis"
-                    stroke="#94a3b8"
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    dot={data.length <= 10}
-                    activeDot={{ r: 4 }}
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeWidth={1.6}
+                    strokeDasharray="6 6"
+                    dot={false}
+                    activeDot={{ r: 3.5 }}
                     connectNulls
                   />
                 </>
@@ -390,7 +451,7 @@ export function PortfolioHistoryChart({
                   />
                 </>
               )}
-            </LineChart>
+            </ComposedChart>
           </ResponsiveContainer>
         )}
       </CardContent>
