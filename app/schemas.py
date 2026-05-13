@@ -4,6 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.models import (
     AssetType,
+    BenchmarkType,
     Currency,
     FxForUsd,
     FxRateType,
@@ -206,3 +207,73 @@ class PortfolioSnapshotRead(BaseModel):
     total_return_ars: float
     total_return_usd: float
     created_at: datetime
+
+
+class PortfolioSnapshotItemRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    snapshot_id: int
+    fecha: date
+    ticker: str
+    tipo: AssetType
+    valor_ars: float
+    valor_usd: float
+    costo_ars: float
+    costo_usd: float
+    pnl_ars: float
+    pnl_usd: float
+    total_return_ars: float
+    total_return_usd: float
+    cantidad_actual: float | None
+    nominal_actual: float | None
+    peso_portfolio_pct: float
+    created_at: datetime
+
+
+class BenchmarkRead(BaseModel):
+    benchmark: BenchmarkType
+
+
+class BenchmarkPriceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    fecha: date
+    benchmark: BenchmarkType
+    valor: float
+    moneda: Currency
+    created_at: datetime
+
+
+class BenchmarkPerformanceRead(BaseModel):
+    fecha: date
+    valor_original: float
+    valor_normalizado: float
+
+
+class DrawdownPointRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    fecha: date
+    valor_portfolio: float
+    running_peak: float
+    drawdown_pct: float
+    drawdown_abs: float
+
+
+class DrawdownSummaryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    max_drawdown_pct: float
+    max_drawdown_abs: float
+    fecha_peak: date | None
+    fecha_trough: date | None
+
+
+class DrawdownResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    moneda: Currency
+    series: list[DrawdownPointRead]
+    summary: DrawdownSummaryRead

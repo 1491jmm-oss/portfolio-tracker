@@ -13,6 +13,9 @@ Esta primera etapa incluye:
 - Consultar PPC, costo y P&L por posicion
 - Consultar cash flows cobrados y total return por posicion
 - Guardar snapshots diarios consolidados para historicos de performance
+- Guardar snapshots historicos por ticker para analytics avanzados
+- Consultar benchmarks historicos y performance normalizada base 100
+- Consultar drawdown analytics historicos de la cartera
 - Documentacion automatica con Swagger
 
 No incluye frontend, TIR ni benchmark.
@@ -96,7 +99,18 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 ### Snapshots
 
 - `GET /snapshots`
+- `GET /snapshots/items`
 - `POST /snapshots/create?fecha=YYYY-MM-DD`
+
+### Benchmarks
+
+- `GET /benchmarks`
+- `GET /benchmarks/prices`
+- `GET /benchmarks/performance?benchmark=CER`
+
+### Analytics
+
+- `GET /analytics/drawdowns?moneda=ARS`
 
 ## Reglas de posicion
 
@@ -146,12 +160,39 @@ NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000
 ## Snapshots diarios
 
 - Los snapshots se guardan en la tabla `portfolio_snapshots`.
-- Cada snapshot guarda solo totales consolidados de cartera, sin detalle por ticker.
+- El detalle por ticker se guarda en la tabla `portfolio_snapshot_items`.
+- Cada snapshot guarda totales consolidados y una fila por posicion valuada.
+- El detalle por ticker permite construir allocation history, performance attribution, winner/loser analysis y concentration analysis.
 - La API inicia automaticamente un scheduler con APScheduler al arrancar FastAPI.
 - El job se ejecuta una vez por dia a las 23:55, timezone `America/Buenos_Aires`.
 - Si ya existe un snapshot para una fecha, no se duplica.
+- Si ya existe un item para el mismo `snapshot_id` y `ticker`, no se duplica.
+- `peso_portfolio_pct` se calcula como `valor_ars / total_ars`.
 - Se puede crear manualmente un snapshot para testing con `POST /snapshots/create?fecha=YYYY-MM-DD`.
 - Los logs informan cuando el scheduler inicia, cuando un snapshot se crea y cuando ya existe.
+
+## Benchmarks
+
+- Los precios historicos de benchmarks se guardan en `benchmark_prices`.
+- Benchmarks iniciales soportados: `CER` y `SPY`.
+- Cada fila tiene `fecha`, `benchmark`, `valor`, `moneda` y `created_at`.
+- No se permite duplicar `benchmark + fecha`.
+- Las consultas devuelven datos en orden temporal ascendente.
+- `normalize_series_base_100()` convierte una serie temporal a indice de performance base 100.
+- `GET /benchmarks/performance` prepara la API para futuros graficos comparativos portfolio vs benchmark.
+
+## Drawdown analytics
+
+- `GET /analytics/drawdowns` calcula drawdowns desde `portfolio_snapshots`.
+- Parametros:
+  - `moneda`: `ARS` o `USD`
+  - `fecha_desde`: opcional
+  - `fecha_hasta`: opcional
+- Devuelve una serie con `valor_portfolio`, `running_peak`, `drawdown_pct` y `drawdown_abs`.
+- Devuelve summary con `max_drawdown_pct`, `max_drawdown_abs`, `fecha_peak` y `fecha_trough`.
+- La serie se ordena temporalmente antes de calcular, por lo que soporta entradas desordenadas.
+- Si no hay snapshots, devuelve serie vacia y summary en cero.
+- Si hay un solo snapshot, drawdown es cero.
 
 ## Ejemplos
 
@@ -328,4 +369,40 @@ Consultar snapshots:
 
 ```bash
 curl http://127.0.0.1:8000/snapshots
+```
+
+Consultar snapshot items:
+
+```bash
+curl http://127.0.0.1:8000/snapshots/items
+```
+
+Filtrar snapshot items por ticker y rango:
+
+```bash
+curl "http://127.0.0.1:8000/snapshots/items?ticker=AL30&fecha_desde=2026-05-01&fecha_hasta=2026-05-31"
+```
+
+Consultar benchmarks soportados:
+
+```bash
+curl http://127.0.0.1:8000/benchmarks
+```
+
+Consultar precios historicos de benchmarks:
+
+```bash
+curl "http://127.0.0.1:8000/benchmarks/prices?benchmark=CER&fecha_desde=2026-05-01&fecha_hasta=2026-05-31"
+```
+
+Consultar performance normalizada base 100:
+
+```bash
+curl "http://127.0.0.1:8000/benchmarks/performance?benchmark=SPY&fecha_desde=2026-05-01&fecha_hasta=2026-05-31"
+```
+
+Consultar drawdowns:
+
+```bash
+curl "http://127.0.0.1:8000/analytics/drawdowns?moneda=ARS&fecha_desde=2026-05-01&fecha_hasta=2026-05-31"
 ```

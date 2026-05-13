@@ -10,6 +10,7 @@ export type AssetType =
   | "LIQUIDEZ";
 
 export type Currency = "ARS" | "USD";
+export type Benchmark = "CER" | "SPY";
 
 export interface ValuationItem {
   fecha: string;
@@ -71,6 +72,53 @@ export interface Snapshot {
   created_at: string;
 }
 
+export interface SnapshotItem {
+  id: number;
+  snapshot_id: number;
+  fecha: string;
+  ticker: string;
+  tipo: AssetType;
+  valor_ars: number;
+  valor_usd: number;
+  costo_ars: number;
+  costo_usd: number;
+  pnl_ars: number;
+  pnl_usd: number;
+  total_return_ars: number;
+  total_return_usd: number;
+  cantidad_actual: number | null;
+  nominal_actual: number | null;
+  peso_portfolio_pct: number;
+  created_at: string;
+}
+
+export interface BenchmarkPerformancePoint {
+  fecha: string;
+  valor_original: number;
+  valor_normalizado: number;
+}
+
+export interface DrawdownPoint {
+  fecha: string;
+  valor_portfolio: number;
+  running_peak: number;
+  drawdown_pct: number;
+  drawdown_abs: number;
+}
+
+export interface DrawdownSummary {
+  max_drawdown_pct: number;
+  max_drawdown_abs: number;
+  fecha_peak: string | null;
+  fecha_trough: string | null;
+}
+
+export interface DrawdownResponse {
+  moneda: Currency;
+  series: DrawdownPoint[];
+  summary: DrawdownSummary;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 async function request<T>(path: string): Promise<T> {
@@ -99,4 +147,16 @@ export function getValuations(date: string) {
 
 export function getSnapshots() {
   return request<Snapshot[]>("/snapshots");
+}
+
+export function getSnapshotItems() {
+  return request<SnapshotItem[]>("/snapshots/items");
+}
+
+export function getBenchmarkPerformance(benchmark: Benchmark) {
+  return request<BenchmarkPerformancePoint[]>(`/benchmarks/performance?benchmark=${benchmark}`);
+}
+
+export function getDrawdowns(currency: Currency) {
+  return request<DrawdownResponse>(`/analytics/drawdowns?moneda=${currency}`);
 }

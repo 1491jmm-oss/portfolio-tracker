@@ -17,6 +17,14 @@ export function DashboardSkeleton() {
         <Skeleton className="h-4 w-44" />
         <Skeleton className="mt-6 h-[280px] w-full" />
       </Card>
+      <Card className="p-5">
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="mt-6 h-[260px] w-full" />
+      </Card>
+      <Card className="p-5">
+        <Skeleton className="h-4 w-44" />
+        <Skeleton className="mt-6 h-[280px] w-full" />
+      </Card>
       <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
         <Card className="p-5">
           <Skeleton className="h-4 w-40" />

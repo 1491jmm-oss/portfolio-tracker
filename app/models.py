@@ -1,8 +1,8 @@
 from datetime import date, datetime
 from enum import Enum
 
-from sqlalchemy import Boolean, Date, DateTime, Float, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -40,6 +40,11 @@ class FxRateType(str, Enum):
     MEP = "MEP"
     CCL = "CCL"
     OFICIAL = "OFICIAL"
+
+
+class BenchmarkType(str, Enum):
+    CER = "CER"
+    SPY = "SPY"
 
 
 class MovementType(str, Enum):
@@ -122,6 +127,63 @@ class PortfolioSnapshot(Base):
     total_pnl_usd: Mapped[float] = mapped_column(Float, nullable=False)
     total_return_ars: Mapped[float] = mapped_column(Float, nullable=False)
     total_return_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+    items: Mapped[list["PortfolioSnapshotItem"]] = relationship(
+        back_populates="snapshot",
+        cascade="all, delete-orphan",
+    )
+
+
+class PortfolioSnapshotItem(Base):
+    __tablename__ = "portfolio_snapshot_items"
+    __table_args__ = (
+        UniqueConstraint("snapshot_id", "ticker", name="uq_snapshot_item_snapshot_ticker"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    snapshot_id: Mapped[int] = mapped_column(
+        ForeignKey("portfolio_snapshots.id"),
+        index=True,
+        nullable=False,
+    )
+    fecha: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    ticker: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
+    tipo: Mapped[str] = mapped_column(String(32), nullable=False)
+    valor_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    valor_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    costo_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    costo_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    pnl_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    pnl_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    total_return_ars: Mapped[float] = mapped_column(Float, nullable=False)
+    total_return_usd: Mapped[float] = mapped_column(Float, nullable=False)
+    cantidad_actual: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nominal_actual: Mapped[float | None] = mapped_column(Float, nullable=True)
+    peso_portfolio_pct: Mapped[float] = mapped_column(Float, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+    )
+
+    snapshot: Mapped[PortfolioSnapshot] = relationship(back_populates="items")
+
+
+class BenchmarkPrice(Base):
+    __tablename__ = "benchmark_prices"
+    __table_args__ = (
+        UniqueConstraint("benchmark", "fecha", name="uq_benchmark_price_benchmark_fecha"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    fecha: Mapped[date] = mapped_column(Date, index=True, nullable=False)
+    benchmark: Mapped[str] = mapped_column(String(16), index=True, nullable=False)
+    valor: Mapped[float] = mapped_column(Float, nullable=False)
+    moneda: Mapped[str] = mapped_column(String(3), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,

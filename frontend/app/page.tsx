@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { AlertCircle, BarChart3, RefreshCcw } from "lucide-react";
 
 import { AllocationChart } from "@/components/dashboard/allocation-chart";
+import { AllocationHistoryChart } from "@/components/dashboard/allocation-history-chart";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { DrawdownChart } from "@/components/dashboard/drawdown-chart";
 import { MetricCards } from "@/components/dashboard/metric-cards";
 import { PnlBarChart } from "@/components/dashboard/pnl-bar-chart";
 import { PortfolioHistoryChart } from "@/components/dashboard/portfolio-history-chart";
@@ -11,18 +14,36 @@ import { PortfolioTable } from "@/components/dashboard/portfolio-table";
 import { DashboardSkeleton } from "@/components/dashboard/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import type { ChartMode, ScaleMode, TimeRange } from "@/lib/chart-controls";
+import type { Currency } from "@/services/api";
+import { useDrawdowns } from "@/hooks/use-drawdowns";
+import { useSnapshotItems } from "@/hooks/use-snapshot-items";
 import { useSnapshots } from "@/hooks/use-snapshots";
 import { useValuations } from "@/hooks/use-valuations";
 
 const valuationDate = "2026-05-02";
 
 export default function Home() {
+  const [historyCurrency, setHistoryCurrency] = useState<Currency>("ARS");
+  const [historyTimeRange, setHistoryTimeRange] = useState<TimeRange>("ALL");
+  const [historyScaleMode, setHistoryScaleMode] = useState<ScaleMode>("linear");
+  const [historyChartMode, setHistoryChartMode] = useState<ChartMode>("absolute");
   const { data, error, isLoading, refetch } = useValuations(valuationDate);
   const {
     data: snapshots,
     error: snapshotsError,
     isLoading: snapshotsLoading,
   } = useSnapshots();
+  const {
+    data: snapshotItems,
+    error: snapshotItemsError,
+    isLoading: snapshotItemsLoading,
+  } = useSnapshotItems();
+  const {
+    data: drawdowns,
+    error: drawdownsError,
+    isLoading: drawdownsLoading,
+  } = useDrawdowns(historyCurrency);
 
   return (
     <main className="min-h-screen px-4 py-5 sm:px-6 lg:px-8">
@@ -57,6 +78,28 @@ export default function Home() {
               snapshots={snapshots}
               isLoading={snapshotsLoading}
               error={snapshotsError}
+              currency={historyCurrency}
+              onCurrencyChange={setHistoryCurrency}
+              timeRange={historyTimeRange}
+              onTimeRangeChange={setHistoryTimeRange}
+              scaleMode={historyScaleMode}
+              onScaleModeChange={setHistoryScaleMode}
+              chartMode={historyChartMode}
+              onChartModeChange={setHistoryChartMode}
+            />
+
+            <DrawdownChart
+              drawdowns={drawdowns}
+              isLoading={drawdownsLoading}
+              error={drawdownsError}
+              currency={historyCurrency}
+              timeRange={historyTimeRange}
+            />
+
+            <AllocationHistoryChart
+              items={snapshotItems}
+              isLoading={snapshotItemsLoading}
+              error={snapshotItemsError}
             />
 
             <section className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
