@@ -21,15 +21,17 @@ import { useBenchmarkPerformance } from "@/hooks/use-benchmark-performance";
 import {
   chartModes,
   filterByRange,
+  formatDateLabel,
   scaleModes,
   timeRanges,
   type ChartMode,
   type ScaleMode,
   type TimeRange,
 } from "@/lib/chart-controls";
+import { pickCurrencyValue } from "@/lib/currency";
 import { formatCompactMoney, formatMoney, formatNumber, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Benchmark, BenchmarkPerformancePoint, Currency, Snapshot } from "@/services/api";
+import type { Benchmark, Currency, Snapshot } from "@/services/api";
 
 interface PortfolioHistoryChartProps {
   snapshots: Snapshot[];
@@ -40,10 +42,9 @@ interface PortfolioHistoryChartProps {
   scaleMode: ScaleMode;
   onScaleModeChange: (scaleMode: ScaleMode) => void;
   chartMode: ChartMode;
-  onChartModeChange?: (chartMode: ChartMode) => void;
+  onChartModeChange: (chartMode: ChartMode) => void;
   title?: string;
   description?: string;
-  showModeToggle?: boolean;
   heightClassName?: string;
 }
 
@@ -57,11 +58,6 @@ interface ChartDatum {
   lossSpread?: number;
   portfolioNormalized?: number;
   benchmarkNormalized?: number;
-}
-
-function formatDateLabel(value: string) {
-  const [, month, day] = value.split("-");
-  return `${day}/${month}`;
 }
 
 function benchmarkForCurrency(currency: Currency): Benchmark {
@@ -94,28 +90,39 @@ function AbsoluteTooltip({
   const differencePct = costBasis === 0 ? null : difference / costBasis;
 
   return (
-    <div className="min-w-56 rounded-md border border-border bg-card p-3 text-sm shadow-xl">
-      <div className="mb-2 font-medium text-foreground">Fecha: {label}</div>
+    <div className="min-w-60 rounded-lg border border-border bg-card/95 p-3 text-xs shadow-xl backdrop-blur">
+      <div className="mb-2 flex items-center justify-between gap-6 border-b border-border pb-2">
+        <span className="font-medium text-foreground">Portfolio Evolution</span>
+        <span className="font-mono text-muted-foreground">{label}</span>
+      </div>
       <div className="space-y-1.5 text-muted-foreground">
-        <div className="flex justify-between gap-6">
-          <span>Portfolio value</span>
+        <div className="flex items-center justify-between gap-8">
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            Portfolio value
+          </span>
           <span className="font-mono text-foreground">{formatMoney(portfolioValue, currency)}</span>
         </div>
-        <div className="flex justify-between gap-6">
-          <span>Cost basis</span>
+        <div className="flex items-center justify-between gap-8">
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-muted-foreground" />
+            Cost basis
+          </span>
           <span className="font-mono text-foreground">{formatMoney(costBasis, currency)}</span>
         </div>
-        <div className="flex justify-between gap-6 border-t border-border pt-1.5">
-          <span>Diferencia</span>
-          <span className={cn("font-mono", difference >= 0 ? "text-positive" : "text-negative")}>
-            {formatMoney(difference, currency)}
-          </span>
-        </div>
-        <div className="flex justify-between gap-6">
-          <span>Diferencia %</span>
-          <span className={cn("font-mono", difference >= 0 ? "text-positive" : "text-negative")}>
-            {formatPercent(differencePct)}
-          </span>
+        <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-2">
+          <div>
+            <p className="text-[10px] uppercase tracking-normal text-muted-foreground">Spread</p>
+            <p className={cn("mt-1 font-mono", difference >= 0 ? "text-positive" : "text-negative")}>
+              {formatMoney(difference, currency)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-normal text-muted-foreground">Spread %</p>
+            <p className={cn("mt-1 font-mono", difference >= 0 ? "text-positive" : "text-negative")}>
+              {formatPercent(differencePct)}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -144,35 +151,48 @@ function RelativeTooltip({
     portfolio !== null && benchmarkValue !== null ? portfolio - benchmarkValue : null;
 
   return (
-    <div className="min-w-64 rounded-md border border-border bg-card p-3 text-sm shadow-xl">
-      <div className="mb-2 font-medium text-foreground">Fecha: {label}</div>
+    <div className="min-w-64 rounded-lg border border-border bg-card/95 p-3 text-xs shadow-xl backdrop-blur">
+      <div className="mb-2 flex items-center justify-between gap-6 border-b border-border pb-2">
+        <span className="font-medium text-foreground">Benchmark mode</span>
+        <span className="font-mono text-muted-foreground">{label}</span>
+      </div>
       <div className="space-y-1.5 text-muted-foreground">
-        <div className="flex justify-between gap-6">
-          <span>Portfolio performance</span>
+        <div className="flex items-center justify-between gap-8">
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-primary" />
+            Portfolio base 100
+          </span>
           <span className="font-mono text-foreground">
             {portfolio === null ? "-" : formatNumber(portfolio, 2)}
           </span>
         </div>
-        <div className="flex justify-between gap-6">
-          <span>{benchmark} performance</span>
+        <div className="flex items-center justify-between gap-8">
+          <span className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-lime-400" />
+            {benchmark} base 100
+          </span>
           <span className="font-mono text-foreground">
             {benchmarkValue === null ? "-" : formatNumber(benchmarkValue, 2)}
           </span>
         </div>
-        <div className="flex justify-between gap-6 border-t border-border pt-1.5">
-          <span>Diferencia relativa</span>
-          <span
-            className={cn(
-              "font-mono",
-              difference === null
-                ? "text-muted-foreground"
-                : difference >= 0
-                  ? "text-positive"
-                  : "text-negative",
-            )}
-          >
-            {difference === null ? "-" : `${formatNumber(difference, 2)} pts`}
-          </span>
+        <div className="mt-2 border-t border-border pt-2">
+          <div className="flex items-center justify-between gap-8">
+            <span className="text-[10px] uppercase tracking-normal text-muted-foreground">
+              Outperformance
+            </span>
+            <span
+              className={cn(
+                "font-mono",
+                difference === null
+                  ? "text-muted-foreground"
+                  : difference >= 0
+                    ? "text-positive"
+                    : "text-negative",
+              )}
+            >
+              {difference === null ? "-" : `${formatNumber(difference, 2)} pts`}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -191,7 +211,6 @@ export function PortfolioHistoryChart({
   onChartModeChange,
   title = "Evolucion historica",
   description,
-  showModeToggle = true,
   heightClassName = "h-[360px]",
 }: PortfolioHistoryChartProps) {
   const { currency } = useCurrency();
@@ -213,11 +232,16 @@ export function PortfolioHistoryChart({
 
   const data = useMemo<ChartDatum[]>(() => {
     if (chartMode === "absolute") {
-      return filteredSnapshots.map((snapshot) => ({
-        fecha: snapshot.fecha,
-        portfolioValue: currency === "ARS" ? snapshot.total_ars : snapshot.total_usd,
-        costBasis: currency === "ARS" ? snapshot.total_costo_ars : snapshot.total_costo_usd,
-      })).map((item) => {
+      return filteredSnapshots.map((snapshot) => {
+        const item = {
+          fecha: snapshot.fecha,
+          portfolioValue: pickCurrencyValue(currency, snapshot.total_ars, snapshot.total_usd),
+          costBasis: pickCurrencyValue(
+            currency,
+            snapshot.total_costo_ars,
+            snapshot.total_costo_usd,
+          ),
+        };
         const portfolioValue = item.portfolioValue ?? 0;
         const costBasis = item.costBasis ?? 0;
 
@@ -232,20 +256,18 @@ export function PortfolioHistoryChart({
     }
 
     const portfolioBaseSnapshot = filteredSnapshots.find((snapshot) => {
-      const value = currency === "ARS" ? snapshot.total_ars : snapshot.total_usd;
+      const value = pickCurrencyValue(currency, snapshot.total_ars, snapshot.total_usd);
       return value > 0;
     });
     const benchmarkBasePoint = filteredBenchmark.find((point) => point.valor_original > 0);
     const portfolioBase = portfolioBaseSnapshot
-      ? currency === "ARS"
-        ? portfolioBaseSnapshot.total_ars
-        : portfolioBaseSnapshot.total_usd
+      ? pickCurrencyValue(currency, portfolioBaseSnapshot.total_ars, portfolioBaseSnapshot.total_usd)
       : 0;
     const benchmarkBase = benchmarkBasePoint?.valor_original ?? 0;
     const rows = new Map<string, ChartDatum>();
 
     for (const snapshot of filteredSnapshots) {
-      const value = currency === "ARS" ? snapshot.total_ars : snapshot.total_usd;
+      const value = pickCurrencyValue(currency, snapshot.total_ars, snapshot.total_usd);
       rows.set(snapshot.fecha, {
         ...(rows.get(snapshot.fecha) ?? { fecha: snapshot.fecha }),
         portfolioNormalized: normalizeValue(value, portfolioBase) ?? undefined,
@@ -260,7 +282,7 @@ export function PortfolioHistoryChart({
     }
 
     return Array.from(rows.values()).sort((a, b) => a.fecha.localeCompare(b.fecha));
-  }, [benchmark, chartMode, currency, filteredBenchmark, filteredSnapshots]);
+  }, [chartMode, currency, filteredBenchmark, filteredSnapshots]);
 
   const valuesForScale = data.flatMap((item) => {
     if (chartMode === "absolute") {
@@ -288,14 +310,12 @@ export function PortfolioHistoryChart({
             <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {showModeToggle ? (
-              <ToggleGroup
-                items={chartModes}
-                value={chartMode}
-                onChange={onChartModeChange ?? (() => undefined)}
-                labels={{ absolute: "Absolute", relative: "Benchmark" }}
-              />
-            ) : null}
+            <ToggleGroup
+              items={chartModes}
+              value={chartMode}
+              onChange={onChartModeChange}
+              labels={{ absolute: "Absolute", relative: "Benchmark" }}
+            />
             <ToggleGroup items={timeRanges} value={timeRange} onChange={onTimeRangeChange} />
             <ToggleGroup
               items={scaleModes}
@@ -362,7 +382,13 @@ export function PortfolioHistoryChart({
                     <RelativeTooltip benchmark={benchmark} />
                   )
                 }
-                cursor={{ stroke: "rgba(148,163,184,0.25)", strokeWidth: 1 }}
+                cursor={{
+                  stroke: "hsl(var(--muted-foreground))",
+                  strokeDasharray: "4 4",
+                  strokeOpacity: 0.45,
+                  strokeWidth: 1,
+                }}
+                wrapperStyle={{ outline: "none" }}
               />
               {chartMode === "absolute" ? (
                 <>
@@ -422,7 +448,11 @@ export function PortfolioHistoryChart({
                     strokeWidth={1.6}
                     strokeDasharray="6 6"
                     dot={false}
-                    activeDot={{ r: 3.5 }}
+                    activeDot={{
+                      r: 3.5,
+                      stroke: "hsl(var(--background))",
+                      strokeWidth: 2,
+                    }}
                     connectNulls
                   />
                 </>
@@ -435,7 +465,7 @@ export function PortfolioHistoryChart({
                     stroke="#22d3ee"
                     strokeWidth={2.5}
                     dot={data.length <= 10}
-                    activeDot={{ r: 5 }}
+                    activeDot={{ r: 5, stroke: "hsl(var(--background))", strokeWidth: 2 }}
                     connectNulls
                   />
                   <Line
@@ -446,7 +476,7 @@ export function PortfolioHistoryChart({
                     strokeWidth={2}
                     strokeDasharray="5 5"
                     dot={data.length <= 10}
-                    activeDot={{ r: 4 }}
+                    activeDot={{ r: 4, stroke: "hsl(var(--background))", strokeWidth: 2 }}
                     connectNulls
                   />
                 </>

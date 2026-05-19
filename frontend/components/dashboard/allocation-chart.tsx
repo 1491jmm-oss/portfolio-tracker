@@ -10,6 +10,7 @@ import {
 
 import { useCurrency } from "@/components/currency-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { pickCurrencyValue } from "@/lib/currency";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 import type { ValuationItem } from "@/services/api";
 
@@ -79,7 +80,7 @@ export function AllocationChart({ items }: AllocationChartProps) {
   const data = Object.values(
     items.reduce<Record<string, { tipo: string; value: number }>>((acc, item) => {
       acc[item.tipo] ??= { tipo: item.tipo.replaceAll("_", " "), value: 0 };
-      acc[item.tipo].value += currency === "ARS" ? item.valor_ars : item.valor_usd;
+      acc[item.tipo].value += pickCurrencyValue(currency, item.valor_ars, item.valor_usd);
       return acc;
     }, {}),
   ).sort((a, b) => b.value - a.value);

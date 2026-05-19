@@ -1,11 +1,8 @@
-import type { Currency } from "@/services/api";
-
 export type TimeRange = "1M" | "3M" | "6M" | "YTD" | "1Y" | "ALL";
 export type ScaleMode = "linear" | "log";
 export type ChartMode = "absolute" | "relative";
 
 export const timeRanges: TimeRange[] = ["1M", "3M", "6M", "YTD", "1Y", "ALL"];
-export const currencies: Currency[] = ["ARS", "USD"];
 export const chartModes: ChartMode[] = ["absolute", "relative"];
 export const scaleModes: ScaleMode[] = ["linear", "log"];
 
@@ -49,4 +46,9 @@ export function filterByRange<T extends { fecha: string }>(items: T[], range: Ti
   }
 
   return sorted.filter((item) => parseDate(item.fecha) >= startDate);
+}
+
+export function formatDateLabel(value: string) {
+  const [, month, day] = value.split("-");
+  return `${day}/${month}`;
 }

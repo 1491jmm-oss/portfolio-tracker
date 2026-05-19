@@ -73,123 +73,123 @@ export default function Home() {
     <>
       <DashboardSidebar />
       <main className="min-h-screen px-4 pb-8 pt-24 sm:px-6 md:pl-[17.5rem] md:pr-8 md:pt-8 lg:pr-10">
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-8">
-        <DashboardHeader date={valuationDate} onRefresh={refetch} />
+        <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-8">
+          <DashboardHeader date={valuationDate} onRefresh={refetch} />
 
-        {isLoading ? <DashboardSkeleton /> : null}
+          {isLoading ? <DashboardSkeleton /> : null}
 
-        {!isLoading && error ? (
-          <Card className="border-red-500/25 bg-red-500/10">
-            <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 text-red-300" />
-                <div>
-                  <p className="font-medium text-red-100">No se pudo cargar la valuacion</p>
-                  <p className="mt-1 text-sm text-red-100/70">{error}</p>
+          {!isLoading && error ? (
+            <Card className="border-red-500/25 bg-red-500/10">
+              <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="mt-0.5 h-5 w-5 text-red-300" />
+                  <div>
+                    <p className="font-medium text-red-100">No se pudo cargar la valuacion</p>
+                    <p className="mt-1 text-sm text-red-100/70">{error}</p>
+                  </div>
                 </div>
-              </div>
-              <Button variant="secondary" onClick={refetch}>
-                <RefreshCcw className="h-4 w-4" />
-                Reintentar
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
+                <Button variant="secondary" onClick={refetch}>
+                  <RefreshCcw className="h-4 w-4" />
+                  Reintentar
+                </Button>
+              </CardContent>
+            </Card>
+          ) : null}
 
-        {!isLoading && data ? (
-          <>
-            <MetricCards valuation={data} />
+          {!isLoading && data ? (
+            <>
+              <MetricCards valuation={data} />
 
-            <section className="space-y-4">
-              <SectionHeader
-                title="Holdings"
-                description="Posiciones actuales, distribucion y contribucion al resultado."
-                meta={
-                  <span className="inline-flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" />
-                    {data.valuations.length} posiciones valuadas
-                  </span>
-                }
-              />
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)]">
-                <div className="min-w-0">
-                  <PortfolioTable items={data.valuations} />
-                </div>
-                <aside className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
-                  <AllocationChart items={data.valuations} />
-                  <PnlBarChart items={data.valuations} />
-                </aside>
-              </div>
-            </section>
-
-            <section className="space-y-4">
-              <SectionHeader
-                title="Portfolio Evolution"
-                description="El grafico principal de patrimonio historico contra costo invertido."
-              />
-              <PortfolioHistoryChart
-                snapshots={snapshots}
-                isLoading={snapshotsLoading}
-                error={snapshotsError}
-                timeRange={historyTimeRange}
-                onTimeRangeChange={setHistoryTimeRange}
-                scaleMode={historyScaleMode}
-                onScaleModeChange={setHistoryScaleMode}
-                chartMode={historyChartMode}
-                onChartModeChange={setHistoryChartMode}
-                title="Portfolio Evolution"
-                description={
-                  historyChartMode === "absolute"
-                    ? "Portfolio value contra cost basis"
-                    : "Portfolio base 100 contra benchmark dinamico"
-                }
-                heightClassName="h-[420px]"
-              />
-            </section>
-
-            <section className="space-y-4">
-              <button
-                type="button"
-                onClick={() => setAdvancedOpen((current) => !current)}
-                className="flex w-full items-center justify-between rounded-lg border border-border bg-card/70 px-5 py-4 text-left shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition hover:border-primary/25 hover:bg-card dark:shadow-[0_14px_34px_rgba(0,0,0,0.18)]"
-              >
-                <span>
-                  <span className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                    <LineChart className="h-4 w-4 text-primary" />
-                    Advanced Analytics
-                  </span>
-                  <span className="mt-1 block text-sm text-muted-foreground">
-                    Drawdowns y allocation history.
-                  </span>
-                </span>
-                <ChevronDown
-                  className={cn(
-                    "h-5 w-5 text-muted-foreground transition-transform",
-                    advancedOpen && "rotate-180",
-                  )}
+              <section className="space-y-4">
+                <SectionHeader
+                  title="Holdings"
+                  description="Posiciones actuales, distribucion y contribucion al resultado."
+                  meta={
+                    <span className="inline-flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-primary" />
+                      {data.valuations.length} posiciones valuadas
+                    </span>
+                  }
                 />
-              </button>
-
-              {advancedOpen ? (
-                <div className="grid gap-5">
-                  <DrawdownChart
-                    drawdowns={drawdowns}
-                    isLoading={drawdownsLoading}
-                    error={drawdownsError}
-                    timeRange={historyTimeRange}
-                  />
-
-                  <AllocationHistoryChart
-                    items={snapshotItems}
-                    isLoading={snapshotItemsLoading}
-                    error={snapshotItemsError}
-                  />
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(340px,0.85fr)]">
+                  <div className="min-w-0">
+                    <PortfolioTable items={data.valuations} />
+                  </div>
+                  <aside className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
+                    <AllocationChart items={data.valuations} />
+                    <PnlBarChart items={data.valuations} />
+                  </aside>
                 </div>
-              ) : null}
-            </section>
-          </>
-        ) : null}
-      </div>
+              </section>
+
+              <section className="space-y-4">
+                <SectionHeader
+                  title="Portfolio Evolution"
+                  description="El grafico principal de patrimonio historico contra costo invertido."
+                />
+                <PortfolioHistoryChart
+                  snapshots={snapshots}
+                  isLoading={snapshotsLoading}
+                  error={snapshotsError}
+                  timeRange={historyTimeRange}
+                  onTimeRangeChange={setHistoryTimeRange}
+                  scaleMode={historyScaleMode}
+                  onScaleModeChange={setHistoryScaleMode}
+                  chartMode={historyChartMode}
+                  onChartModeChange={setHistoryChartMode}
+                  title="Portfolio Evolution"
+                  description={
+                    historyChartMode === "absolute"
+                      ? "Portfolio value contra cost basis"
+                      : "Portfolio base 100 contra benchmark dinamico"
+                  }
+                  heightClassName="h-[420px]"
+                />
+              </section>
+
+              <section className="space-y-4">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen((current) => !current)}
+                  className="flex w-full items-center justify-between rounded-lg border border-border bg-card/70 px-5 py-4 text-left shadow-[0_14px_34px_rgba(15,23,42,0.06)] transition hover:border-primary/25 hover:bg-card dark:shadow-[0_14px_34px_rgba(0,0,0,0.18)]"
+                >
+                  <span>
+                    <span className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                      <LineChart className="h-4 w-4 text-primary" />
+                      Advanced Analytics
+                    </span>
+                    <span className="mt-1 block text-sm text-muted-foreground">
+                      Drawdowns y allocation history.
+                    </span>
+                  </span>
+                  <ChevronDown
+                    className={cn(
+                      "h-5 w-5 text-muted-foreground transition-transform",
+                      advancedOpen && "rotate-180",
+                    )}
+                  />
+                </button>
+
+                {advancedOpen ? (
+                  <div className="grid gap-5">
+                    <DrawdownChart
+                      drawdowns={drawdowns}
+                      isLoading={drawdownsLoading}
+                      error={drawdownsError}
+                      timeRange={historyTimeRange}
+                    />
+
+                    <AllocationHistoryChart
+                      items={snapshotItems}
+                      isLoading={snapshotItemsLoading}
+                      error={snapshotItemsError}
+                    />
+                  </div>
+                ) : null}
+              </section>
+            </>
+          ) : null}
+        </div>
       </main>
     </>
   );

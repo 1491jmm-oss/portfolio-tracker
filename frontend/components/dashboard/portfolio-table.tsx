@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { pickCurrencyValue } from "@/lib/currency";
 import { formatMoney, formatNumber, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { AssetType, Currency, ValuationItem } from "@/services/api";
@@ -59,7 +60,7 @@ function formatPrice(item: ValuationItem, currency: Currency) {
     return "-";
   }
 
-  const value = currency === "ARS" ? item.valor_ars : item.valor_usd;
+  const value = pickCurrencyValue(currency, item.valor_ars, item.valor_usd);
   const unitPrice = isFixedIncome(item.tipo) ? (value / base) * 100 : value / base;
 
   return formatMoney(unitPrice, currency);
@@ -140,10 +141,14 @@ export function PortfolioTable({ items }: PortfolioTableProps) {
             const pnlUsd = item.pnl_usd ?? 0;
             const totalReturnArs = item.total_return_ars ?? item.total_return;
             const totalReturnUsd = item.total_return_usd ?? 0;
-            const selectedCost = currency === "ARS" ? item.costo_total_ars : item.costo_total_usd;
-            const selectedValue = currency === "ARS" ? item.valor_ars : item.valor_usd;
-            const selectedPnl = currency === "ARS" ? pnlArs : pnlUsd;
-            const selectedReturn = currency === "ARS" ? totalReturnArs : totalReturnUsd;
+            const selectedCost = pickCurrencyValue(
+              currency,
+              item.costo_total_ars,
+              item.costo_total_usd,
+            );
+            const selectedValue = pickCurrencyValue(currency, item.valor_ars, item.valor_usd);
+            const selectedPnl = pickCurrencyValue(currency, pnlArs, pnlUsd);
+            const selectedReturn = pickCurrencyValue(currency, totalReturnArs, totalReturnUsd);
 
             return (
               <TableRow key={item.ticker}>

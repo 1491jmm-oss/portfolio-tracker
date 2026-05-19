@@ -13,6 +13,7 @@ import {
 
 import { useCurrency } from "@/components/currency-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { oppositeCurrency, pickCurrencyValue } from "@/lib/currency";
 import { formatCompactMoney, formatMoney } from "@/lib/format";
 import type { ValuationItem } from "@/services/api";
 
@@ -22,12 +23,16 @@ interface PnlBarChartProps {
 
 export function PnlBarChart({ items }: PnlBarChartProps) {
   const { currency } = useCurrency();
-  const secondaryCurrency = currency === "ARS" ? "USD" : "ARS";
+  const secondaryCurrency = oppositeCurrency(currency);
   const data = items
     .map((item) => ({
       ticker: item.ticker,
-      pnl: currency === "ARS" ? (item.pnl_ars ?? item.pnl) : (item.pnl_usd ?? 0),
-      pnlSecondary: currency === "ARS" ? (item.pnl_usd ?? 0) : (item.pnl_ars ?? item.pnl),
+      pnl: pickCurrencyValue(currency, item.pnl_ars ?? item.pnl, item.pnl_usd ?? 0),
+      pnlSecondary: pickCurrencyValue(
+        secondaryCurrency,
+        item.pnl_ars ?? item.pnl,
+        item.pnl_usd ?? 0,
+      ),
     }))
     .sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl))
     .slice(0, 10);

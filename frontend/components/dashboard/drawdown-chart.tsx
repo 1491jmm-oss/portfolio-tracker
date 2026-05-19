@@ -14,9 +14,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/components/currency-provider";
-import { filterByRange, type TimeRange } from "@/lib/chart-controls";
+import { filterByRange, formatDateLabel, type TimeRange } from "@/lib/chart-controls";
 import { formatMoney, formatPercent } from "@/lib/format";
-import { cn } from "@/lib/utils";
 import type { Currency, DrawdownPoint, DrawdownResponse } from "@/services/api";
 
 interface DrawdownChartProps {
@@ -24,11 +23,6 @@ interface DrawdownChartProps {
   isLoading: boolean;
   error: string | null;
   timeRange: TimeRange;
-}
-
-function formatDateLabel(value: string) {
-  const [, month, day] = value.split("-");
-  return `${day}/${month}`;
 }
 
 function summaryForRange(series: DrawdownPoint[]) {
@@ -49,7 +43,9 @@ function summaryForRange(series: DrawdownPoint[]) {
   }
 
   const peakPoint = [...series]
-    .filter((point) => point.fecha <= maxDrawdown.fecha && point.running_peak === maxDrawdown.running_peak)
+    .filter(
+      (point) => point.fecha <= maxDrawdown.fecha && point.running_peak === maxDrawdown.running_peak,
+    )
     .at(-1);
 
   return {

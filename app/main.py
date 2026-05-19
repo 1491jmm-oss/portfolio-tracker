@@ -4,7 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
-from app.routes import analytics, assets, benchmarks, fx_rates, movements, positions, prices, snapshots, valuations
+from app.routes import (
+    analytics,
+    assets,
+    benchmarks,
+    fx_rates,
+    movements,
+    positions,
+    prices,
+    snapshots,
+    valuations,
+)
+from app.routes.iol import router as iol_router
 from app.services.scheduler import start_scheduler, stop_scheduler
 
 
@@ -38,6 +49,7 @@ app.include_router(valuations.router)
 app.include_router(snapshots.router)
 app.include_router(benchmarks.router)
 app.include_router(analytics.router)
+app.include_router(iol_router)
 
 
 @app.on_event("startup")
@@ -53,3 +65,4 @@ def shutdown_event() -> None:
 @app.get("/health", tags=["health"])
 def health_check() -> dict[str, str]:
     return {"status": "ok"}
+    

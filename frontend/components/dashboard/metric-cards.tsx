@@ -4,32 +4,39 @@ import { Activity, LineChart, TrendingUp, WalletCards } from "lucide-react";
 
 import { useCurrency } from "@/components/currency-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { oppositeCurrency, pickCurrencyValue } from "@/lib/currency";
 import { formatMoney, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Currency, ValuationResponse } from "@/services/api";
+import type { ValuationResponse } from "@/services/api";
 
 interface MetricCardsProps {
   valuation: ValuationResponse;
 }
 
-function otherCurrency(currency: Currency): Currency {
-  return currency === "ARS" ? "USD" : "ARS";
-}
-
 export function MetricCards({ valuation }: MetricCardsProps) {
   const { currency } = useCurrency();
-  const secondaryCurrency = otherCurrency(currency);
+  const secondaryCurrency = oppositeCurrency(currency);
   const values = {
-    total: currency === "ARS" ? valuation.total_ars : valuation.total_usd,
-    totalSecondary: secondaryCurrency === "ARS" ? valuation.total_ars : valuation.total_usd,
-    cost: currency === "ARS" ? valuation.total_costo_ars : valuation.total_costo_usd,
-    costSecondary:
-      secondaryCurrency === "ARS" ? valuation.total_costo_ars : valuation.total_costo_usd,
-    pnl: currency === "ARS" ? valuation.total_pnl_ars : valuation.total_pnl_usd,
-    pnlSecondary: secondaryCurrency === "ARS" ? valuation.total_pnl_ars : valuation.total_pnl_usd,
-    totalReturn: currency === "ARS" ? valuation.total_return_ars : valuation.total_return_usd,
-    totalReturnSecondary:
-      secondaryCurrency === "ARS" ? valuation.total_return_ars : valuation.total_return_usd,
+    total: pickCurrencyValue(currency, valuation.total_ars, valuation.total_usd),
+    totalSecondary: pickCurrencyValue(secondaryCurrency, valuation.total_ars, valuation.total_usd),
+    cost: pickCurrencyValue(currency, valuation.total_costo_ars, valuation.total_costo_usd),
+    costSecondary: pickCurrencyValue(
+      secondaryCurrency,
+      valuation.total_costo_ars,
+      valuation.total_costo_usd,
+    ),
+    pnl: pickCurrencyValue(currency, valuation.total_pnl_ars, valuation.total_pnl_usd),
+    pnlSecondary: pickCurrencyValue(
+      secondaryCurrency,
+      valuation.total_pnl_ars,
+      valuation.total_pnl_usd,
+    ),
+    totalReturn: pickCurrencyValue(currency, valuation.total_return_ars, valuation.total_return_usd),
+    totalReturnSecondary: pickCurrencyValue(
+      secondaryCurrency,
+      valuation.total_return_ars,
+      valuation.total_return_usd,
+    ),
   };
 
   const metrics = [

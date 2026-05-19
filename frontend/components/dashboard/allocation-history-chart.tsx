@@ -14,9 +14,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrency } from "@/components/currency-provider";
+import { formatDateLabel } from "@/lib/chart-controls";
+import { pickCurrencyValue } from "@/lib/currency";
 import { formatMoney, formatPercent } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import type { SnapshotItem } from "@/services/api";
+import type { Currency, SnapshotItem } from "@/services/api";
 
 interface AllocationHistoryChartProps {
   items: SnapshotItem[];
@@ -43,11 +44,6 @@ const palette = [
   "#818cf8",
   "#2dd4bf",
 ];
-
-function formatDateLabel(value: string) {
-  const [, month, day] = value.split("-");
-  return `${day}/${month}`;
-}
 
 function buildAllocationData(items: SnapshotItem[]) {
   const tickers = Array.from(new Set(items.map((item) => item.ticker))).sort();
@@ -93,7 +89,7 @@ function AllocationTooltip({
     payload: AllocationDatum;
   }>;
   label?: string;
-  currency: "ARS" | "USD";
+  currency: Currency;
 }) {
   if (!active || !payload?.length) {
     return null;
@@ -111,7 +107,7 @@ function AllocationTooltip({
           const ticker = String(row.dataKey);
           const valorArs = Number(row.payload[`${ticker}__valor_ars`] ?? 0);
           const valorUsd = Number(row.payload[`${ticker}__valor_usd`] ?? 0);
-          const value = currency === "ARS" ? valorArs : valorUsd;
+          const value = pickCurrencyValue(currency, valorArs, valorUsd);
 
           return (
             <div key={ticker} className="border-b border-border/70 pb-2 last:border-0 last:pb-0">
@@ -174,7 +170,11 @@ export function AllocationHistoryChart({
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} stackOffset="expand" margin={{ top: 8, right: 16, left: 4, bottom: 8 }}>
+            <AreaChart
+              data={data}
+              stackOffset="expand"
+              margin={{ top: 8, right: 16, left: 4, bottom: 8 }}
+            >
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="fecha"
@@ -221,7 +221,7 @@ export function AllocationHistoryChart({
             </span>
           ))}
           {tickers.length > 12 ? (
-            <span className={cn("text-muted-foreground/80")}>+{tickers.length - 12} más</span>
+            <span className="text-muted-foreground/80">+{tickers.length - 12} más</span>
           ) : null}
         </div>
       ) : null}
