@@ -11,6 +11,14 @@ export type AssetType =
 
 export type Currency = "ARS" | "USD";
 export type Benchmark = "CER" | "SPY";
+export type MovementType =
+  | "COMPRA"
+  | "VENTA"
+  | "CUPON"
+  | "DIVIDENDO"
+  | "AMORTIZACION"
+  | "TRANSFERENCIA"
+  | "AJUSTE";
 
 export interface ValuationItem {
   fecha: string;
@@ -119,15 +127,49 @@ export interface DrawdownResponse {
   summary: DrawdownSummary;
 }
 
+export interface Movement {
+  id: number;
+  fecha: string;
+  ticker: string;
+  tipo_movimiento: MovementType;
+  cantidad: number | null;
+  nominal: number | null;
+  precio: number | null;
+  moneda: Currency;
+  comision: number;
+  cash_flow: number | null;
+  observaciones: string | null;
+}
+
+export interface MovementCreate {
+  fecha: string;
+  ticker: string;
+  tipo_movimiento: MovementType;
+  cantidad?: number | null;
+  nominal?: number | null;
+  precio?: number | null;
+  moneda: Currency;
+  comision?: number;
+  cash_flow?: number | null;
+  observaciones?: string | null;
+}
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
-async function request<T>(path: string): Promise<T> {
+async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       Accept: "application/json",
+      ...(options?.body ? { "Content-Type": "application/json" } : {}),
+      ...options?.headers,
     },
     cache: "no-store",
   });
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
 
   if (!response.ok) {
     const detail = await response.json().catch(() => null);
@@ -159,4 +201,21 @@ export function getBenchmarkPerformance(benchmark: Benchmark) {
 
 export function getDrawdowns(currency: Currency) {
   return request<DrawdownResponse>(`/analytics/drawdowns?moneda=${currency}`);
+}
+
+export function getMovements() {
+  return request<Movement[]>("/movements");
+}
+
+export function createMovement(movement: MovementCreate) {
+  return request<Movement>("/movements", {
+    method: "POST",
+    body: JSON.stringify(movement),
+  });
+}
+
+export function deleteMovement(movementId: number) {
+  return request<void>(`/movements/${movementId}`, {
+    method: "DELETE",
+  });
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { AlertCircle, BarChart3, ChevronDown, LineChart, RefreshCcw } from "lucide-react";
 
+import { AppShell } from "@/components/app-shell";
 import { AllocationChart } from "@/components/dashboard/allocation-chart";
 import { AllocationHistoryChart } from "@/components/dashboard/allocation-history-chart";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DrawdownChart } from "@/components/dashboard/drawdown-chart";
 import { MetricCards } from "@/components/dashboard/metric-cards";
 import { PnlBarChart } from "@/components/dashboard/pnl-bar-chart";
@@ -23,8 +23,21 @@ import { useDrawdowns } from "@/hooks/use-drawdowns";
 import { useSnapshotItems } from "@/hooks/use-snapshot-items";
 import { useSnapshots } from "@/hooks/use-snapshots";
 import { useValuations } from "@/hooks/use-valuations";
+import type { Snapshot } from "@/services/api";
 
 const valuationDate = "2026-05-02";
+
+function getLatestSnapshotUpdatedAt(snapshots: Snapshot[]) {
+  return snapshots.reduce<string | null>((latest, snapshot) => {
+    if (!latest) {
+      return snapshot.created_at;
+    }
+
+    return new Date(snapshot.created_at).getTime() > new Date(latest).getTime()
+      ? snapshot.created_at
+      : latest;
+  }, null);
+}
 
 function SectionHeader({
   title,
@@ -57,6 +70,7 @@ export default function Home() {
     data: snapshots,
     error: snapshotsError,
     isLoading: snapshotsLoading,
+    refetch: refetchSnapshots,
   } = useSnapshots();
   const {
     data: snapshotItems,
@@ -68,13 +82,22 @@ export default function Home() {
     error: drawdownsError,
     isLoading: drawdownsLoading,
   } = useDrawdowns(currency);
+  const latestSnapshotUpdatedAt = useMemo(
+    () => getLatestSnapshotUpdatedAt(snapshots),
+    [snapshots],
+  );
+  const refreshDashboard = useCallback(() => {
+    void refetch();
+    void refetchSnapshots();
+  }, [refetch, refetchSnapshots]);
 
   return (
-    <>
-      <DashboardSidebar />
-      <main className="min-h-screen px-4 pb-8 pt-24 sm:px-6 md:pl-[17.5rem] md:pr-8 md:pt-8 lg:pr-10">
-        <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-8">
-          <DashboardHeader date={valuationDate} onRefresh={refetch} />
+    <AppShell>
+          <DashboardHeader
+            lastUpdatedAt={latestSnapshotUpdatedAt}
+            isLastUpdatedLoading={snapshotsLoading}
+            onRefresh={refreshDashboard}
+          />
 
           {isLoading ? <DashboardSkeleton /> : null}
 
@@ -189,8 +212,6 @@ export default function Home() {
               </section>
             </>
           ) : null}
-        </div>
-      </main>
-    </>
+    </AppShell>
   );
 }

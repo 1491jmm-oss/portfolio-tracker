@@ -111,3 +111,16 @@ def create_movement(movement_in: MovementCreate, db: Session = Depends(get_db)) 
 def list_movements(db: Session = Depends(get_db)) -> list[Movement]:
     statement = select(Movement).order_by(Movement.fecha, Movement.id)
     return list(db.scalars(statement).all())
+
+
+@router.delete("/{movement_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_movement(movement_id: int, db: Session = Depends(get_db)) -> None:
+    movement = db.get(Movement, movement_id)
+    if not movement:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No existe el movimiento {movement_id}",
+        )
+
+    db.delete(movement)
+    db.commit()
